@@ -1,0 +1,8 @@
+[package]
+name = "crystals"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+pest = { version = "2.7.8", features = [ "pretty-print" ] }
+pest_derive = "2.7.8"
