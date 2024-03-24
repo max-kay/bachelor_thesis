@@ -23,7 +23,11 @@
 //! -b/2 < y <= b/2
 //! -c/2 < z <= c/2
 
-use std::ops::{Add, AddAssign, Mul, Neg, Rem, RemAssign, Sub, SubAssign};
+use std::{
+    fmt::Display,
+    ops::{Add, AddAssign, Mul, Neg, Rem, RemAssign, Sub, SubAssign},
+    str::FromStr,
+};
 
 use pest::iterators::Pair;
 
@@ -50,6 +54,16 @@ impl Vec3 {
     }
 }
 
+impl<T: Into<Frac>> From<[T; 3]> for Vec3 {
+    fn from(value: [T; 3]) -> Self {
+        let mut arr: [Frac; 3] = Default::default();
+        for (i, val) in value.into_iter().enumerate() {
+            arr[i] = val.into();
+        }
+        Self(arr)
+    }
+}
+
 impl Vec3 {
     /// The dot product
     pub fn dot(&self, other: &Self) -> Frac {
@@ -68,18 +82,6 @@ impl Vec3 {
     pub fn norm(&self) -> f32 {
         let len_sq: f32 = self.norm_sq().into();
         len_sq.sqrt()
-    }
-}
-
-impl From<[Frac; 3]> for Vec3 {
-    fn from(value: [Frac; 3]) -> Self {
-        Self(value)
-    }
-}
-
-impl From<(Frac, Frac, Frac)> for Vec3 {
-    fn from(value: (Frac, Frac, Frac)) -> Self {
-        Self([value.0, value.1, value.2])
     }
 }
 
@@ -160,7 +162,7 @@ impl Rem<Vec3> for Vec3 {
     fn rem(mut self, rhs: Vec3) -> Self::Output {
         self.0.iter_mut().zip(rhs.0.iter()).for_each(|(a, b)| {
             *a %= b;
-            if *a / b < Frac::new(1, 2) {
+            if *a / b > Frac::new(1, 2) {
                 *a -= b
             }
         });
@@ -209,9 +211,13 @@ impl Pos3 {
     }
 }
 
-impl From<[Frac; 3]> for Pos3 {
-    fn from(value: [Frac; 3]) -> Self {
-        Self(value)
+impl<T: Into<Frac>> From<[T; 3]> for Pos3 {
+    fn from(value: [T; 3]) -> Self {
+        let mut arr: [Frac; 3] = Default::default();
+        for (i, val) in value.into_iter().enumerate() {
+            arr[i] = val.into();
+        }
+        Self(arr)
     }
 }
 
@@ -394,6 +400,16 @@ impl Mat3 {
     }
 }
 
+impl<T: Into<Frac>> From<[T; 9]> for Mat3 {
+    fn from(value: [T; 9]) -> Self {
+        let mut arr: [Frac; 9] = Default::default();
+        for (i, val) in value.into_iter().enumerate() {
+            arr[i] = val.into();
+        }
+        Self(arr)
+    }
+}
+
 impl Mul for Mat3 {
     type Output = Self;
 
@@ -502,7 +518,66 @@ impl Affine3 {
     }
 
     pub fn from_parser(pair: Pair<OpListRule>) -> Self {
-        todo!()
+        assert_eq!(pair.as_rule(), OpListRule::operation); // TODO might be unnecessary
+        let mut mat: [Frac; 9] = Default::default();
+        let mut translation: [Frac; 3] = Default::default();
+        for (i, p) in pair.into_inner().enumerate() {
+            assert_eq!(p.as_rule(), OpListRule::coeff_op);
+            let mut active_minus = false;
+            for op in p.into_inner() {
+                use OpListRule::*;
+                match op.as_rule() {
+                    x => {
+                        if active_minus {
+                            mat[3 * 0 + i] = Frac::new(-1, 1)
+                        } else {
+                            mat[3 * 0 + i] = 1.into()
+                        }
+                    }
+                    y => {
+                        if active_minus {
+                            mat[3 * 1 + i] = Frac::new(-1, 1)
+                        } else {
+                            mat[3 * 1 + i] = 1.into()
+                        }
+                    }
+                    z => {
+                        if active_minus {
+                            mat[3 * 2 + i] = Frac::new(-1, 1)
+                        } else {
+                            mat[3 * 2 + i] = 1.into()
+                        }
+                    }
+                    p_rational_num => {
+                        let mut num = Frac::from_str(op.as_str()).expect("enfored by grammar");
+                        if active_minus {
+                            num *= Frac::new(-1, 1)
+                        }
+                        active_minus = false;
+                        translation[i] = num;
+                    }
+                    sign => {
+                        if op.as_str() == "-" {
+                            active_minus = true
+                        }
+                    }
+                    _ => unreachable!(),
+                }
+            }
+        }
+        Self {
+            mat: mat.into(),
+            translation: translation.into(),
+        }
+    }
+}
+
+impl From<Vec3> for Affine3 {
+    fn from(value: Vec3) -> Self {
+        Affine3 {
+            mat: Mat3::identity(),
+            translation: value,
+        }
     }
 }
 
@@ -517,11 +592,6 @@ impl Affine3 {
         self.mat.is_invertible()
     }
 
-    /// returns true if the transformation is isometric
-    pub fn is_isometric(&self) -> bool {
-        self.mat.is_orthogonal()
-    }
-
     /// returns the inverse if it exists
     pub fn inverse(&self) -> Option<Self> {
         let inverse_mat = self.mat.inverse()?;
@@ -529,6 +599,33 @@ impl Affine3 {
             mat: inverse_mat,
             translation: -(inverse_mat * self.translation),
         })
+    }
+}
+
+impl Display for Affine3 {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        println!("{:?}", self);
+        let mut out = String::new();
+        for (row, &translation) in (&self.mat.0).chunks(3).zip(self.translation.0.iter()) {
+            if !out.is_empty() {
+                out.push(',')
+            }
+            let mut coeff_op = String::new();
+            for (val, ch) in row.iter().zip("xyz".chars()) {
+                if *val != 0.into() {
+                    coeff_op.push_str(&format!("{}{}", val.as_signed_prefactor(), ch));
+                }
+            }
+            if translation != 0.into() {
+                coeff_op.push_str(&format!("{}", translation.as_string_signed()));
+            }
+            if coeff_op.starts_with("+") {
+                out.push_str(&coeff_op[1..]);
+            } else {
+                out.push_str(&coeff_op);
+            }
+        }
+        write!(f, "{}", out)
     }
 }
 
@@ -714,30 +811,43 @@ mod tests {
             Frac::new(1, 2), 1.into(), 5.into(),
         ]);
         assert_eq!(Mat3::identity(), mat * mat.inverse().unwrap());
-        let mat = Mat3([
-            1.into(), 4.into(), 4.into(),
-            5.into(), 2.into(), 5.into(),
-            0.into(), 0.into(), 0.into(),
-        ]);
+        let mat: Mat3 = [1, 4, 4,
+                   5, 2, 5,
+                   0, 0, 0].into();
         assert!(mat.inverse().is_none());
     }
 
     #[rustfmt::skip]
     #[test]
     fn test_inverse_affine() {
-        let mat = Mat3([
-            1.into(), 4.into(), 4.into(),
-            5.into(), 2.into(), 5.into(),
-            3.into(), 2.into(), 5.into(),
-        ]);
-        let translation = [1.into(), 2.into(), 0.into()].into();
+        let mat = [1, 4, 4,
+                   5, 2, 5,
+                   3, 2, 5].into();
+        let translation = [1, 2, 0].into();
         let affine = Affine3::new(mat, translation);
         let inverse = affine.inverse().unwrap();
         assert_eq!(Affine3::identity(), affine * inverse);
         assert_eq!(Affine3::identity(), inverse * affine);
-        let pos: Pos3 = [1.into(), 0.into(), 1.into()].into();
+        let pos: Pos3 = [1, 0, 1].into();
         assert_eq!(pos, inverse * (affine * pos));
-        let vec: Vec3 = [11.into(), 12.into(), 2.into()].into();
+        let vec: Vec3 = [11, 12, 2].into();
         assert_eq!(vec, inverse * (affine * vec));
+    }
+
+    #[test]
+    fn test_rem() {
+        let super_cell: Vec3 = [3, 2, 1].into();
+        assert_eq!(
+            Pos3::origin(),
+            Pos3::new(3.into(), 2.into(), 1.into()) % super_cell
+        );
+        assert_eq!(
+            Pos3::new(2.into(), 0.into(), 0.into()),
+            Pos3::new(2.into(), 2.into(), 1.into()) % super_cell
+        );
+        assert_eq!(
+            Vec3::new((-1).into(), 1.into(), 0.into()),
+            Vec3::new(2.into(), 1.into(), 1.into()) % super_cell
+        );
     }
 }

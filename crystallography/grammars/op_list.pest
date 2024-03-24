@@ -15,7 +15,7 @@ sign = { "+" | "-" }
 
 /// matches non-negative integers
 integer        = ${ ASCII_DIGIT+ }
-/// any nonzero digi
+/// any nonzero digit
 nz_digit       = { '1' .. '9' }
 /// any version of zero
 num_zero       = ${ "0"+ ~ !nz_digit }

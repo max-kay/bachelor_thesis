@@ -53,6 +53,39 @@ impl Frac {
         }
         Self(self.0 / self.1 + 1, 1)
     }
+
+    /// returns the fraction as a string allways displaying the sign
+    pub fn as_string_signed(self) -> String {
+        if self.0 > 0 {
+            format!("+{}", self)
+        } else {
+            format!("{}", self)
+        }
+    }
+
+    /// returns the fraction as a prefactor allmost like display but if -1 only sign is returned
+    /// empty string if 1
+    pub fn as_prefactor(self) -> String {
+        if self == Self(-1, 1) {
+            return "-".to_string();
+        }
+        if self == 1.into() {
+            return String::new();
+        }
+        format!("{}", self)
+    }
+
+    /// returns the fraction as a signed prefactor like as_prefactor but for +1 the sign is also
+    /// returned
+    pub fn as_signed_prefactor(self) -> String {
+        if self == Self(-1, 1) {
+            return "-".to_string();
+        }
+        if self == 1.into() {
+            return "+".to_string();
+        }
+        format!("{}", self)
+    }
 }
 
 impl FromStr for Frac {

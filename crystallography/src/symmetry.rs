@@ -1,30 +1,40 @@
 //! this module defines Symmetry groups and elements
+
 use std::{
+    fmt::Display,
     fs::read_to_string,
     ops::{Mul, Rem, RemAssign},
     path::Path,
 };
 
+use anyhow::Result;
+use pest::iterators::Pair;
 use pest::Parser;
-use pest::{error::Error, iterators::Pair};
+use thiserror::Error;
 
 use crate::{copy_mul_impl, Affine3, Mat3, OpListParser, OpListRule, Pos3, Vec3};
+
+#[derive(Error, Debug)]
+enum InvalidOpError {
+    #[error("{0} doesnt have deterimnant +/- 1")]
+    Deterimnant(Affine3),
+}
 
 /// a type representing a crystallographic symmetry operation
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct SymmetryElement(Affine3);
 
 impl SymmetryElement {
-    /// constructor returns some if the operation is isometric
-    pub fn new(operation: Affine3) -> Option<Self> {
+    /// constructor returns some if the operation has determinant +/-1
+    pub fn new(operation: Affine3) -> Result<Self> {
         if !(operation.mat_determinant().abs() == 1.into()) {
-            return None;
+            return Err(InvalidOpError::Deterimnant(operation))?;
         }
-        Some(Self(operation))
+        Ok(Self(operation))
     }
 
-    /// constructor from matrix returns Some if the matrix is orthogonal
-    pub fn from_mat(mat: Mat3) -> Option<Self> {
+    /// constructor from matrix returns Some if the matrix has determinant +/-1
+    pub fn from_mat(mat: Mat3) -> Result<Self> {
         Self::new(Affine3::from_mat(mat))
     }
 
@@ -33,9 +43,9 @@ impl SymmetryElement {
         Self(Affine3::from_translation(translation))
     }
 
-    pub fn from_parser(pair: Pair<OpListRule>) -> Self {
+    pub fn from_parser(pair: Pair<OpListRule>) -> Result<Self> {
         assert_eq!(pair.as_rule(), OpListRule::operation); // TODO might be unnecessary
-        Self::new(Affine3::from_parser(pair)).unwrap()
+        Ok(Self::new(Affine3::from_parser(pair))?)
     }
 }
 
@@ -47,6 +57,12 @@ impl SymmetryElement {
                 .inverse()
                 .expect("SymmetryElements are always invertible"),
         )
+    }
+}
+
+impl Display for SymmetryElement {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
     }
 }
 
@@ -125,11 +141,29 @@ impl RemAssign<&Vec3> for SymmetryElement {
     }
 }
 /// A struct represnting a space group
+#[derive(Debug)]
 pub struct SpaceGroup {
     operations: Vec<SymmetryElement>,
 }
 
+impl PartialEq for SpaceGroup {
+    fn eq(&self, other: &Self) -> bool {
+        if !self.operations.len() == other.operations.len() {
+            return false;
+        }
+        for op in &self.operations {
+            if !other.operations.contains(&op) {
+                return false;
+            }
+        }
+        true
+    }
+}
+
 impl SpaceGroup {
+    /// this function takes a Vec of symmetries and tries to close them under multiplication.
+    /// all operations are performed modulo (1, 1, 1) as defined in the affine space module
+    /// panics if this cannot be done within 10_000 iterations to prevent an infinite loop.
     pub fn from_symmetries(symmetries: Vec<SymmetryElement>) -> Self {
         let mut operations: Vec<SymmetryElement> = Vec::new();
         for op in symmetries {
@@ -159,21 +193,36 @@ impl SpaceGroup {
         Self { operations }
     }
 
-    pub fn from_oplist(oplist: &str) -> Result<Self, Error<OpListRule>> {
+    /// this function takes a oplist as a string and parses it
+    /// note that the parsed symmetry operations are sent through SpaceGroup::from_symmetries thus
+    /// the same conditions for panicing applies
+    pub fn from_oplist(oplist: &str) -> Result<Self> {
         let parsed = OpListParser::parse(OpListRule::op_list, oplist)?
             .next()
             .expect("never fails according to docs");
-        assert_eq!(parsed.as_rule(), OpListRule::op_list);
+        assert_eq!(parsed.as_rule(), OpListRule::op_list); // TODO might be unnecessary
         let pairs = parsed.into_inner();
+        let mut operations = Vec::new();
         for pair in pairs {
-            println!("{}", pair)
+            operations.push(SymmetryElement::from_parser(pair)?);
         }
-        todo!()
+        Ok(Self::from_symmetries(operations))
     }
 
-    pub fn from_file(path: impl AsRef<Path>) -> Self {
-        let string = read_to_string(path).unwrap();
-        Self::from_oplist(&string).unwrap()
+    /// this function is a convenience function reading a file and passing the string to
+    /// SpaceGroup::from_oplist
+    pub fn from_file(path: impl AsRef<Path>) -> Result<Self> {
+        let string = read_to_string(path)?;
+        Self::from_oplist(&string).into()
+    }
+}
+
+impl Display for SpaceGroup {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        for op in &self.operations {
+            write!(f, "{};", op)?;
+        }
+        Ok(())
     }
 }
 
@@ -182,6 +231,10 @@ mod test {
     use super::*;
     #[test]
     pub fn parse_test() {
-        SpaceGroup::from_file("groups/point_groups/example.sg");
+        let sg = SpaceGroup::from_file("groups/point_groups/example.sg").unwrap();
+        let as_string = format!("{}", sg);
+        println!("{:?}", sg);
+        println!("{}", as_string);
+        assert_eq!(sg, SpaceGroup::from_oplist(&as_string).unwrap());
     }
 }
