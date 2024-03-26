@@ -29,6 +29,7 @@ use std::{
     str::FromStr,
 };
 
+use nalgebra::{Matrix3, Point3, Vector3};
 use pest::iterators::Pair;
 
 use crate::{copy_mul_impl, Frac, OpListRule};
@@ -61,6 +62,12 @@ impl<T: Into<Frac>> From<[T; 3]> for Vec3 {
             arr[i] = val.into();
         }
         Self(arr)
+    }
+}
+
+impl Into<Vector3<f32>> for Vec3 {
+    fn into(self) -> Vector3<f32> {
+        [self.0[0].into(), self.0[1].into(), self.0[2].into()].into()
     }
 }
 
@@ -227,6 +234,24 @@ impl From<(Frac, Frac, Frac)> for Pos3 {
     }
 }
 
+impl From<Vec3> for Pos3 {
+    fn from(value: Vec3) -> Self {
+        Self(value.0)
+    }
+}
+
+impl From<Pos3> for Vec3 {
+    fn from(value: Pos3) -> Self {
+        Self(value.0)
+    }
+}
+
+impl Into<Point3<f32>> for Pos3 {
+    fn into(self) -> Point3<f32> {
+        [self.0[0].into(), self.0[1].into(), self.0[2].into()].into()
+    }
+}
+
 impl Sub for Pos3 {
     type Output = Vec3;
 
@@ -264,18 +289,6 @@ impl Add<Vec3> for Pos3 {
 impl AddAssign<Vec3> for Pos3 {
     fn add_assign(&mut self, rhs: Vec3) {
         *self = *self + rhs
-    }
-}
-
-impl From<Vec3> for Pos3 {
-    fn from(value: Vec3) -> Self {
-        Self(value.0)
-    }
-}
-
-impl From<Pos3> for Vec3 {
-    fn from(value: Pos3) -> Self {
-        Self(value.0)
     }
 }
 
@@ -339,6 +352,13 @@ impl Mat3 {
         Self([i, o, o,
               o, i, o,
               o, o, i])
+    }
+}
+
+impl Display for Mat3 {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let as_affine: Affine3 = (*self).into();
+        Display::fmt(&as_affine, f)
     }
 }
 
@@ -407,6 +427,17 @@ impl<T: Into<Frac>> From<[T; 9]> for Mat3 {
             arr[i] = val.into();
         }
         Self(arr)
+    }
+}
+
+impl Into<Matrix3<f32>> for Mat3 {
+    fn into(self) -> Matrix3<f32> {
+        [
+            [self.0[0].into(), self.0[3].into(), self.0[6].into()],
+            [self.0[1].into(), self.0[4].into(), self.0[7].into()],
+            [self.0[2].into(), self.0[5].into(), self.0[8].into()],
+        ]
+        .into()
     }
 }
 
@@ -517,7 +548,8 @@ impl Affine3 {
         }
     }
 
-    pub fn from_parser(pair: Pair<OpListRule>) -> Self {
+    /// creates an object from the parsed pair
+    pub(crate) fn from_parser(pair: Pair<OpListRule>) -> Self {
         assert_eq!(pair.as_rule(), OpListRule::operation); // TODO might be unnecessary
         let mut mat: [Frac; 9] = Default::default();
         let mut translation: [Frac; 3] = Default::default();
@@ -581,6 +613,28 @@ impl From<Vec3> for Affine3 {
     }
 }
 
+impl From<Mat3> for Affine3 {
+    fn from(value: Mat3) -> Self {
+        Self {
+            mat: value,
+            translation: Vec3::zero(),
+        }
+    }
+}
+
+impl Into<nalgebra::Affine3<f32>> for Affine3 {
+    fn into(self) -> nalgebra::Affine3<f32> {
+        let mat: Matrix3<f32> = self.mat.into();
+        let mut mat = mat
+            .insert_fixed_rows::<1>(3, 0.0)
+            .insert_fixed_columns::<1>(3, 0.0);
+        let translation: Vector3<f32> = self.translation.into();
+        let temp = translation.insert_fixed_rows::<1>(3, 1.0);
+        mat.set_column(3, &temp);
+        nalgebra::Affine3::from_matrix_unchecked(mat)
+    }
+}
+
 impl Affine3 {
     /// calculates the determinant of the matrix of the transformation
     pub fn mat_determinant(&self) -> Frac {
@@ -603,7 +657,7 @@ impl Affine3 {
 }
 
 impl Display for Affine3 {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         println!("{:?}", self);
         let mut out = String::new();
         for (row, &translation) in (&self.mat.0).chunks(3).zip(self.translation.0.iter()) {
@@ -625,7 +679,7 @@ impl Display for Affine3 {
                 out.push_str(&coeff_op);
             }
         }
-        write!(f, "{}", out)
+        write!(formatter, "{}", out)
     }
 }
 

@@ -5,6 +5,7 @@ edition = "2021"
 
 [dependencies]
 anyhow = "1.0.81"
+nalgebra = "0.32.4"
 pest = { version = "2.7.8", features = [ "pretty-print" ] }
 pest_derive = "2.7.8"
 thiserror = "1.0.58"

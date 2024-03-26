@@ -8,6 +8,7 @@ use std::{
 };
 
 use anyhow::Result;
+use nalgebra::Matrix3;
 use pest::iterators::Pair;
 use pest::Parser;
 use thiserror::Error;
@@ -16,19 +17,125 @@ use crate::{copy_mul_impl, Affine3, Mat3, OpListParser, OpListRule, Pos3, Vec3};
 
 #[derive(Error, Debug)]
 enum InvalidOpError {
-    #[error("{0} doesnt have deterimnant +/- 1")]
-    Deterimnant(Affine3),
+    #[error("{0} doesnt have determinant +/- 1")]
+    SpaceGroup(Affine3),
+    #[error("{0} doesnt have determinant +/- 1")]
+    PointGroup(Mat3),
 }
+
+/// a type representing a point group element
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct PointGroupElement(Mat3);
+
+impl PointGroupElement {
+    /// constructor returns Err if the determinant is not +/- 1
+    pub fn new(mat: Mat3) -> Result<Self> {
+        if !(mat.determinant().abs() == 1.into()) {
+            return Err(InvalidOpError::PointGroup(mat).into());
+        }
+        Ok(Self(mat))
+    }
+}
+
+impl Into<Matrix3<f32>> for PointGroupElement {
+    fn into(self) -> Matrix3<f32> {
+        self.0.into()
+    }
+}
+
+impl Mul for PointGroupElement {
+    type Output = PointGroupElement;
+
+    fn mul(self, rhs: Self) -> Self::Output {
+        Self(self.0 * rhs.0)
+    }
+}
+
+copy_mul_impl!(PointGroupElement, PointGroupElement);
+
+impl Mul<Vec3> for PointGroupElement {
+    type Output = Vec3;
+
+    fn mul(self, rhs: Vec3) -> Self::Output {
+        self.0 * rhs
+    }
+}
+
+copy_mul_impl!(PointGroupElement, Vec3);
+
+impl Mul<Pos3> for PointGroupElement {
+    type Output = Pos3;
+
+    fn mul(self, rhs: Pos3) -> Self::Output {
+        self.0 * rhs
+    }
+}
+
+copy_mul_impl!(PointGroupElement, Pos3);
+
+/// a struct representing a pointgroup
+pub struct PointGroup {
+    operations: Vec<PointGroupElement>,
+}
+
+impl PointGroup {
+    /// constructor from generators
+    /// this function tries to produce closure under multiplication
+    /// panics if closure cannot be reached within 10_000 moves
+    pub fn from_generators(generators: Vec<PointGroupElement>) -> Self {
+        let mut operations: Vec<PointGroupElement> = Vec::new();
+        for op in generators {
+            if !operations.contains(&op) {
+                operations.push(op)
+            }
+        }
+        let mut counter = 0;
+        let mut added_new = true;
+        while added_new && counter < 10_000 {
+            counter += 1;
+            added_new = false;
+            for i in 0..operations.len() {
+                for j in 0..operations.len() {
+                    let op = operations[i] * operations[j];
+                    if !operations.contains(&op) {
+                        operations.push(op);
+                        added_new = true;
+                    }
+                }
+            }
+        }
+        if !(counter < 10_000) {
+            panic!("didn't manage to close group within 10'000 iterations");
+        }
+        Self { operations }
+    }
+}
+
+impl PartialEq for PointGroup {
+    fn eq(&self, other: &Self) -> bool {
+        if !self.operations.len() == other.operations.len() {
+            return false;
+        }
+        for op in &self.operations {
+            if !other.operations.contains(&op) {
+                return false;
+            }
+        }
+        true
+    }
+}
+
+impl Eq for PointGroup {}
 
 /// a type representing a crystallographic symmetry operation
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct SymmetryElement(Affine3);
+pub struct SpaceGroupElement(Affine3);
 
-impl SymmetryElement {
+impl SpaceGroupElement {
     /// constructor returns some if the operation has determinant +/-1
     pub fn new(operation: Affine3) -> Result<Self> {
         if !(operation.mat_determinant().abs() == 1.into()) {
-            return Err(InvalidOpError::Deterimnant(operation))?;
+            return Err(InvalidOpError::SpaceGroup(operation).into());
         }
         Ok(Self(operation))
     }
@@ -43,13 +150,20 @@ impl SymmetryElement {
         Self(Affine3::from_translation(translation))
     }
 
-    pub fn from_parser(pair: Pair<OpListRule>) -> Result<Self> {
+    /// creates the symmetry element from a parsed pair
+    pub(crate) fn from_parser(pair: Pair<OpListRule>) -> Result<Self> {
         assert_eq!(pair.as_rule(), OpListRule::operation); // TODO might be unnecessary
         Ok(Self::new(Affine3::from_parser(pair))?)
     }
 }
 
-impl SymmetryElement {
+impl Into<nalgebra::Affine3<f32>> for SpaceGroupElement {
+    fn into(self) -> nalgebra::Affine3<f32> {
+        self.0.into()
+    }
+}
+
+impl SpaceGroupElement {
     /// returns the inverse of the operation
     pub fn invert(&self) -> Self {
         Self(
@@ -60,13 +174,13 @@ impl SymmetryElement {
     }
 }
 
-impl Display for SymmetryElement {
+impl Display for SpaceGroupElement {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.0)
     }
 }
 
-impl Mul for SymmetryElement {
+impl Mul for SpaceGroupElement {
     type Output = Self;
 
     fn mul(self, rhs: Self) -> Self::Output {
@@ -74,9 +188,9 @@ impl Mul for SymmetryElement {
     }
 }
 
-copy_mul_impl!(SymmetryElement, SymmetryElement);
+copy_mul_impl!(SpaceGroupElement, SpaceGroupElement);
 
-impl Mul<Vec3> for SymmetryElement {
+impl Mul<Vec3> for SpaceGroupElement {
     type Output = Vec3;
 
     fn mul(self, rhs: Vec3) -> Self::Output {
@@ -84,9 +198,9 @@ impl Mul<Vec3> for SymmetryElement {
     }
 }
 
-copy_mul_impl!(SymmetryElement, Vec3);
+copy_mul_impl!(SpaceGroupElement, Vec3);
 
-impl Mul<Pos3> for SymmetryElement {
+impl Mul<Pos3> for SpaceGroupElement {
     type Output = Pos3;
 
     fn mul(self, rhs: Pos3) -> Self::Output {
@@ -94,10 +208,10 @@ impl Mul<Pos3> for SymmetryElement {
     }
 }
 
-copy_mul_impl!(SymmetryElement, Pos3);
+copy_mul_impl!(SpaceGroupElement, Pos3);
 
-impl Rem<Vec3> for SymmetryElement {
-    type Output = SymmetryElement;
+impl Rem<Vec3> for SpaceGroupElement {
+    type Output = SpaceGroupElement;
 
     fn rem(mut self, rhs: Vec3) -> Self::Output {
         self.0 %= rhs;
@@ -105,45 +219,47 @@ impl Rem<Vec3> for SymmetryElement {
     }
 }
 
-impl Rem<&Vec3> for SymmetryElement {
-    type Output = SymmetryElement;
+impl Rem<&Vec3> for SpaceGroupElement {
+    type Output = SpaceGroupElement;
 
     fn rem(self, rhs: &Vec3) -> Self::Output {
         self % *rhs
     }
 }
 
-impl Rem<Vec3> for &SymmetryElement {
-    type Output = SymmetryElement;
+impl Rem<Vec3> for &SpaceGroupElement {
+    type Output = SpaceGroupElement;
 
     fn rem(self, rhs: Vec3) -> Self::Output {
         *self % rhs
     }
 }
 
-impl Rem<&Vec3> for &SymmetryElement {
-    type Output = SymmetryElement;
+impl Rem<&Vec3> for &SpaceGroupElement {
+    type Output = SpaceGroupElement;
 
     fn rem(self, rhs: &Vec3) -> Self::Output {
         *self % *rhs
     }
 }
 
-impl RemAssign<Vec3> for SymmetryElement {
+impl RemAssign<Vec3> for SpaceGroupElement {
     fn rem_assign(&mut self, rhs: Vec3) {
         *self = *self % rhs
     }
 }
 
-impl RemAssign<&Vec3> for SymmetryElement {
+impl RemAssign<&Vec3> for SpaceGroupElement {
     fn rem_assign(&mut self, rhs: &Vec3) {
         *self = *self % *rhs
     }
 }
-/// A struct represnting a space group
+/// A struct representing a space group
+/// internaly the space group is represented as the qutient group of the space group modulo the
+/// group genreated by translations along axes.
 #[derive(Debug)]
 pub struct SpaceGroup {
-    operations: Vec<SymmetryElement>,
+    operations: Vec<SpaceGroupElement>,
 }
 
 impl PartialEq for SpaceGroup {
@@ -160,13 +276,15 @@ impl PartialEq for SpaceGroup {
     }
 }
 
+impl Eq for SpaceGroup {}
+
 impl SpaceGroup {
     /// this function takes a Vec of symmetries and tries to close them under multiplication.
     /// all operations are performed modulo (1, 1, 1) as defined in the affine space module
     /// panics if this cannot be done within 10_000 iterations to prevent an infinite loop.
-    pub fn from_symmetries(symmetries: Vec<SymmetryElement>) -> Self {
-        let mut operations: Vec<SymmetryElement> = Vec::new();
-        for op in symmetries {
+    pub fn from_generators(generators: Vec<SpaceGroupElement>) -> Self {
+        let mut operations: Vec<SpaceGroupElement> = Vec::new();
+        for op in generators {
             let op = op % Vec3::splat(1.into());
             if !operations.contains(&op) {
                 operations.push(op)
@@ -204,9 +322,9 @@ impl SpaceGroup {
         let pairs = parsed.into_inner();
         let mut operations = Vec::new();
         for pair in pairs {
-            operations.push(SymmetryElement::from_parser(pair)?);
+            operations.push(SpaceGroupElement::from_parser(pair)?);
         }
-        Ok(Self::from_symmetries(operations))
+        Ok(Self::from_generators(operations))
     }
 
     /// this function is a convenience function reading a file and passing the string to
@@ -214,6 +332,14 @@ impl SpaceGroup {
     pub fn from_file(path: impl AsRef<Path>) -> Result<Self> {
         let string = read_to_string(path)?;
         Self::from_oplist(&string).into()
+    }
+}
+
+impl SpaceGroup {
+    /// returns true if the operation is an element of the space group
+    pub fn contains(&self, op: SpaceGroupElement) -> bool {
+        let op = op % Vec3::splat(1.into());
+        self.operations.contains(&op)
     }
 }
 
