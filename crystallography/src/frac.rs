@@ -54,6 +54,19 @@ impl Frac {
         Self(self.0 / self.1 + 1, 1)
     }
 
+    /// returns the numerator
+    pub fn get_numerator(&self) -> i32 {
+        self.0
+    }
+
+    /// returns the denominator
+    pub fn get_denominator(&self) -> i32 {
+        self.1
+    }
+}
+
+/// Different string representations of Frac.
+impl Frac {
     /// returns the fraction as a string allways displaying the sign
     pub fn as_string_signed(self) -> String {
         if self.0 > 0 {
@@ -63,7 +76,7 @@ impl Frac {
         }
     }
 
-    /// returns the fraction as a prefactor allmost like display but if -1 only sign is returned
+    /// returns the fraction as a prefactor almost like display but if -1 only sign is returned
     /// empty string if 1
     pub fn as_prefactor(self) -> String {
         if self == Self(-1, 1) {
