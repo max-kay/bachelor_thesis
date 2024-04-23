@@ -43,15 +43,24 @@ impl Frac {
 
     /// returns the floor of the Fraction
     pub fn floor(self) -> Self {
-        Self(self.0 / self.1, 1)
+        let rem = self.0.rem_euclid(self.1);
+        let int = if rem == 0 {
+            self.0 / self.1
+        } else {
+            (self.0 - rem) / self.1
+        };
+        Self(int, 1)
     }
 
-    /// returns the ceil of the fraction
+    /// returns the ceil of the Fraction
     pub fn ceil(self) -> Self {
-        if self.0 % self.1 == 0 {
-            return Self(self.0 / self.1, 1);
-        }
-        Self(self.0 / self.1 + 1, 1)
+        let rem = self.0.rem_euclid(self.1);
+        let int = if rem == 0 {
+            self.0 / self.1
+        } else {
+            (self.0 - rem) / self.1 + 1
+        };
+        Self(int, 1)
     }
 
     /// returns the numerator
@@ -107,8 +116,11 @@ impl FromStr for Frac {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let mut iter = s.split("/");
         let numerator = iter.next().unwrap();
-        let denominator = iter.next().unwrap();
-        Ok(Self::new(numerator.parse()?, denominator.parse()?))
+        if let Some(denominator) = iter.next() {
+            Ok(Self::new(numerator.parse()?, denominator.parse()?))
+        } else {
+            Ok(Self(numerator.parse()?, 1))
+        }
     }
 }
 
@@ -325,7 +337,7 @@ impl Rem for Frac {
     type Output = Frac;
 
     fn rem(self, rhs: Self) -> Self::Output {
-        self + (-self / rhs).floor() * rhs
+        self + (-self / rhs).ceil() * rhs
     }
 }
 
@@ -509,10 +521,28 @@ mod tests {
     }
 
     #[test]
+    fn test_floor_ceil() {
+        let frac = Frac::new(1, 2);
+        assert_eq!(frac.floor(), 0.into());
+        assert_eq!(frac.ceil(), 1.into());
+
+        let frac = Frac::new(-1, 2);
+        assert_eq!(frac.floor(), (-1).into());
+        assert_eq!(frac.ceil(), 0.into());
+
+        let frac = Frac::new(-3, 2);
+        assert_eq!(frac.floor(), (-2).into());
+        assert_eq!(frac.ceil(), (-1).into());
+    }
+
+    #[test]
     fn test_rem() {
         let result: Frac = Frac::from_str("1/1").unwrap() % Frac::from_str("1/2").unwrap();
+        println!("{result}");
         assert_eq!(result, 0.into());
         let result: Frac = Frac::from_str("5/8").unwrap() % Frac::from_str("1/4").unwrap();
+        assert_eq!(result, Frac::from_str("1/8").unwrap());
+        let result: Frac = Frac::from_str("-5/8").unwrap() % Frac::from_str("1/4").unwrap();
         assert_eq!(result, Frac::from_str("1/8").unwrap());
     }
 }

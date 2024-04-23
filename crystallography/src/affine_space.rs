@@ -3,12 +3,12 @@
 //!
 //! All objects use rational coefficients.
 //! A Pos3 is different from a Vec3 in that the translation part of an affine transformation aren't
-//! applyed to a Vec3.
+//! applied to a Vec3.
 //!
 //! ## on the implementation of Rem (%)
 //!
 //! The remainder operation is used to model peridic boudary conditions.
-//! Let the point (x, y, z) be aequvalent to all points (x + an, y + bm, z + cl) with n, m, l
+//! Let the point (x, y, z) be aequivalent to all points (x + an, y + bm, z + cl) with n, m, l
 //! integers.
 //! this means that all points can be represented with coefficients
 //! 0 <= x < a
@@ -163,10 +163,10 @@ impl Neg for &Vec3 {
     }
 }
 
-impl Rem<Vec3> for Vec3 {
+impl Rem<Bounds3> for Vec3 {
     type Output = Vec3;
 
-    fn rem(mut self, rhs: Vec3) -> Self::Output {
+    fn rem(mut self, rhs: Bounds3) -> Self::Output {
         self.0.iter_mut().zip(rhs.0.iter()).for_each(|(a, b)| {
             *a %= b;
             if *a / b > Frac::new(1, 2) {
@@ -177,22 +177,22 @@ impl Rem<Vec3> for Vec3 {
     }
 }
 
-impl Rem<&Vec3> for Vec3 {
+impl Rem<&Bounds3> for Vec3 {
     type Output = Vec3;
 
-    fn rem(self, rhs: &Vec3) -> Self::Output {
+    fn rem(self, rhs: &Bounds3) -> Self::Output {
         self % *rhs
     }
 }
 
-impl RemAssign<Vec3> for Vec3 {
-    fn rem_assign(&mut self, rhs: Vec3) {
+impl RemAssign<Bounds3> for Vec3 {
+    fn rem_assign(&mut self, rhs: Bounds3) {
         *self = *self % rhs;
     }
 }
 
-impl RemAssign<&Vec3> for Vec3 {
-    fn rem_assign(&mut self, rhs: &Vec3) {
+impl RemAssign<&Bounds3> for Vec3 {
+    fn rem_assign(&mut self, rhs: &Bounds3) {
         *self = *self % *rhs
     }
 }
@@ -292,10 +292,10 @@ impl AddAssign<Vec3> for Pos3 {
     }
 }
 
-impl Rem<Vec3> for Pos3 {
+impl Rem<Bounds3> for Pos3 {
     type Output = Pos3;
 
-    fn rem(mut self, rhs: Vec3) -> Self::Output {
+    fn rem(mut self, rhs: Bounds3) -> Self::Output {
         self.0
             .iter_mut()
             .zip(rhs.0.iter())
@@ -304,22 +304,22 @@ impl Rem<Vec3> for Pos3 {
     }
 }
 
-impl Rem<&Vec3> for Pos3 {
+impl Rem<&Bounds3> for Pos3 {
     type Output = Pos3;
 
-    fn rem(self, rhs: &Vec3) -> Self::Output {
+    fn rem(self, rhs: &Bounds3) -> Self::Output {
         self % *rhs
     }
 }
 
-impl RemAssign<Vec3> for Pos3 {
-    fn rem_assign(&mut self, rhs: Vec3) {
+impl RemAssign<Bounds3> for Pos3 {
+    fn rem_assign(&mut self, rhs: Bounds3) {
         *self = *self % rhs
     }
 }
 
-impl RemAssign<&Vec3> for Pos3 {
-    fn rem_assign(&mut self, rhs: &Vec3) {
+impl RemAssign<&Bounds3> for Pos3 {
+    fn rem_assign(&mut self, rhs: &Bounds3) {
         *self = *self % *rhs
     }
 }
@@ -548,13 +548,35 @@ impl Affine3 {
         }
     }
 
-    /// creates an object from the parsed pair
-    pub(crate) fn from_parser(pair: Pair<OpListRule>) -> Self {
-        assert_eq!(pair.as_rule(), OpListRule::operation); // TODO might be unnecessary
+    pub(crate) fn from_parser_trans_op(pair: Pair<OpListRule>) -> Self {
+        let mut translation: [Frac; 3] = Default::default();
+        for (i, t) in pair.into_inner().enumerate() {
+            debug_assert_eq!(t.as_rule(), OpListRule::coeff_translation);
+            let mut active_minus = false;
+            let mut iter = t.into_inner();
+            while let Some(p) = iter.next() {
+                if p.as_rule() == OpListRule::sign {
+                    if p.as_str() == "-" {
+                        active_minus = true;
+                    }
+                }
+                if p.as_rule() == OpListRule::p_rational_num {
+                    let mut num = Frac::from_str(p.as_str()).expect("enforced by grammar");
+                    if active_minus {
+                        num = -num;
+                    }
+                    translation[i] = num;
+                }
+            }
+        }
+        Affine3::from_translation(translation.into())
+    }
+
+    pub(crate) fn from_parser_operation(pair: Pair<OpListRule>) -> Self {
         let mut mat: [Frac; 9] = Default::default();
         let mut translation: [Frac; 3] = Default::default();
         for (i, p) in pair.into_inner().enumerate() {
-            assert_eq!(p.as_rule(), OpListRule::coeff_op);
+            debug_assert_eq!(p.as_rule(), OpListRule::coeff_op);
             let mut active_minus = false;
             for op in p.into_inner() {
                 use OpListRule::*;
@@ -581,7 +603,7 @@ impl Affine3 {
                         }
                     }
                     p_rational_num => {
-                        let mut num = Frac::from_str(op.as_str()).expect("enfored by grammar");
+                        let mut num = Frac::from_str(op.as_str()).expect("enforced by grammar");
                         if active_minus {
                             num *= Frac::new(-1, 1)
                         }
@@ -593,13 +615,22 @@ impl Affine3 {
                             active_minus = true
                         }
                     }
-                    _ => unreachable!(),
+                    _ => unreachable!(), // by grammar
                 }
             }
         }
         Self {
             mat: mat.into(),
             translation: translation.into(),
+        }
+    }
+
+    /// creates an object from the parsed pair
+    pub(crate) fn from_parser(pair: Pair<OpListRule>) -> Self {
+        match pair.as_rule() {
+            OpListRule::operation => Self::from_parser_operation(pair),
+            OpListRule::translation_op => Self::from_parser_trans_op(pair),
+            _ => unreachable!(), // by grammar
         }
     }
 }
@@ -656,6 +687,26 @@ impl Affine3 {
     }
 }
 
+/// A struct used for the Remainder implementation
+#[derive(Copy, Clone)]
+pub struct Bounds3([Frac; 3]);
+
+impl Bounds3 {
+    /// Creates a bounds struct with all values set to the given value
+    pub fn splat(val: Frac) -> Self {
+        Self([val; 3])
+    }
+}
+
+impl<T: Into<Frac>> From<[T; 3]> for Bounds3 {
+    fn from(value: [T; 3]) -> Self {
+        let mut arr: [Frac; 3] = Default::default();
+        for (i, val) in value.into_iter().enumerate() {
+            arr[i] = val.into();
+        }
+        Self(arr)
+    }
+}
 impl Display for Affine3 {
     fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         println!("{:?}", self);
@@ -716,54 +767,54 @@ impl Mul<Pos3> for Affine3 {
 
 copy_mul_impl!(Affine3, Pos3);
 
-impl Rem<Vec3> for Affine3 {
+impl Rem<Bounds3> for Affine3 {
     type Output = Affine3;
 
-    fn rem(mut self, rhs: Vec3) -> Self::Output {
+    fn rem(mut self, rhs: Bounds3) -> Self::Output {
         self.translation %= rhs;
         self
     }
 }
 
-impl Rem<&Vec3> for Affine3 {
+impl Rem<&Bounds3> for Affine3 {
     type Output = Affine3;
 
-    fn rem(self, rhs: &Vec3) -> Self::Output {
+    fn rem(self, rhs: &Bounds3) -> Self::Output {
         self % *rhs
     }
 }
 
-impl Rem<Vec3> for &Affine3 {
+impl Rem<Bounds3> for &Affine3 {
     type Output = Affine3;
 
-    fn rem(self, rhs: Vec3) -> Self::Output {
+    fn rem(self, rhs: Bounds3) -> Self::Output {
         *self % rhs
     }
 }
 
-impl Rem<&Vec3> for &Affine3 {
+impl Rem<&Bounds3> for &Affine3 {
     type Output = Affine3;
 
-    fn rem(self, rhs: &Vec3) -> Self::Output {
+    fn rem(self, rhs: &Bounds3) -> Self::Output {
         *self % *rhs
     }
 }
 
-impl RemAssign<Vec3> for Affine3 {
-    fn rem_assign(&mut self, rhs: Vec3) {
+impl RemAssign<Bounds3> for Affine3 {
+    fn rem_assign(&mut self, rhs: Bounds3) {
         *self = *self % rhs
     }
 }
 
-impl RemAssign<&Vec3> for Affine3 {
-    fn rem_assign(&mut self, rhs: &Vec3) {
+impl RemAssign<&Bounds3> for Affine3 {
+    fn rem_assign(&mut self, rhs: &Bounds3) {
         *self = *self % *rhs
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{Affine3, Frac, Mat3, Pos3, Vec3};
+    use super::*;
 
     #[test]
     fn test_vec3_dot() {
@@ -890,7 +941,7 @@ mod tests {
 
     #[test]
     fn test_rem() {
-        let super_cell: Vec3 = [3, 2, 1].into();
+        let super_cell: Bounds3 = [3, 2, 1].into();
         assert_eq!(
             Pos3::origin(),
             Pos3::new(3.into(), 2.into(), 1.into()) % super_cell

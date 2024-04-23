@@ -13,7 +13,9 @@ use pest::iterators::Pair;
 use pest::Parser;
 use thiserror::Error;
 
-use crate::{copy_mul_impl, Affine3, Mat3, OpListParser, OpListRule, Pos3, Vec3};
+use crate::{
+    affine_space::Bounds3, copy_mul_impl, Affine3, Mat3, OpListParser, OpListRule, Pos3, Vec3,
+};
 
 #[derive(Error, Debug)]
 enum InvalidOpError {
@@ -152,7 +154,6 @@ impl SpaceGroupElement {
 
     /// creates the symmetry element from a parsed pair
     pub(crate) fn from_parser(pair: Pair<OpListRule>) -> Result<Self> {
-        assert_eq!(pair.as_rule(), OpListRule::operation); // TODO might be unnecessary
         Ok(Self::new(Affine3::from_parser(pair))?)
     }
 }
@@ -210,47 +211,47 @@ impl Mul<Pos3> for SpaceGroupElement {
 
 copy_mul_impl!(SpaceGroupElement, Pos3);
 
-impl Rem<Vec3> for SpaceGroupElement {
+impl Rem<Bounds3> for SpaceGroupElement {
     type Output = SpaceGroupElement;
 
-    fn rem(mut self, rhs: Vec3) -> Self::Output {
+    fn rem(mut self, rhs: Bounds3) -> Self::Output {
         self.0 %= rhs;
         self
     }
 }
 
-impl Rem<&Vec3> for SpaceGroupElement {
+impl Rem<&Bounds3> for SpaceGroupElement {
     type Output = SpaceGroupElement;
 
-    fn rem(self, rhs: &Vec3) -> Self::Output {
+    fn rem(self, rhs: &Bounds3) -> Self::Output {
         self % *rhs
     }
 }
 
-impl Rem<Vec3> for &SpaceGroupElement {
+impl Rem<Bounds3> for &SpaceGroupElement {
     type Output = SpaceGroupElement;
 
-    fn rem(self, rhs: Vec3) -> Self::Output {
+    fn rem(self, rhs: Bounds3) -> Self::Output {
         *self % rhs
     }
 }
 
-impl Rem<&Vec3> for &SpaceGroupElement {
+impl Rem<&Bounds3> for &SpaceGroupElement {
     type Output = SpaceGroupElement;
 
-    fn rem(self, rhs: &Vec3) -> Self::Output {
+    fn rem(self, rhs: &Bounds3) -> Self::Output {
         *self % *rhs
     }
 }
 
-impl RemAssign<Vec3> for SpaceGroupElement {
-    fn rem_assign(&mut self, rhs: Vec3) {
+impl RemAssign<Bounds3> for SpaceGroupElement {
+    fn rem_assign(&mut self, rhs: Bounds3) {
         *self = *self % rhs
     }
 }
 
-impl RemAssign<&Vec3> for SpaceGroupElement {
-    fn rem_assign(&mut self, rhs: &Vec3) {
+impl RemAssign<&Bounds3> for SpaceGroupElement {
+    fn rem_assign(&mut self, rhs: &Bounds3) {
         *self = *self % *rhs
     }
 }
@@ -285,7 +286,7 @@ impl SpaceGroup {
     pub fn from_generators(generators: Vec<SpaceGroupElement>) -> Self {
         let mut operations: Vec<SpaceGroupElement> = Vec::new();
         for op in generators {
-            let op = op % Vec3::splat(1.into());
+            let op = op % Bounds3::splat(1.into());
             if !operations.contains(&op) {
                 operations.push(op)
             }
@@ -297,7 +298,7 @@ impl SpaceGroup {
             added_new = false;
             for i in 0..operations.len() {
                 for j in 0..operations.len() {
-                    let op = (operations[i] * operations[j]) % Vec3::splat(1.into());
+                    let op = (operations[i] * operations[j]) % Bounds3::splat(1.into());
                     if !operations.contains(&op) {
                         operations.push(op);
                         added_new = true;
@@ -338,29 +339,75 @@ impl SpaceGroup {
 impl SpaceGroup {
     /// returns true if the operation is an element of the space group
     pub fn contains(&self, op: SpaceGroupElement) -> bool {
-        let op = op % Vec3::splat(1.into());
+        let op = op % Bounds3::splat(1.into());
         self.operations.contains(&op)
+    }
+
+    /// returns the cardinality of the quotient_group with unit translations
+    pub fn len(&self) -> usize {
+        self.operations.len()
     }
 }
 
 impl Display for SpaceGroup {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         for op in &self.operations {
-            write!(f, "{};", op)?;
+            writeln!(f, "{};", op)?;
         }
         Ok(())
+    }
+}
+
+/// this struct represents
+pub struct Site {
+    position: Pos3,
+    stabilizer: Vec<SpaceGroupElement>,
+    orbit: Vec<Pos3>,
+}
+
+impl Site {
+    /// create a new site calculating the orbit and the stabilizer
+    pub fn new(group: &SpaceGroup, position: Pos3) -> Self {
+        let mut orbit = vec![position];
+        let mut stabilizer = Vec::new();
+        for &op in group.operations.iter() {
+            let new_pos = (op * position) % Bounds3::splat(1.into());
+            if new_pos == position {
+                stabilizer.push(op)
+            }
+            if !orbit.contains(&new_pos) {
+                orbit.push(new_pos)
+            }
+        }
+        Self {
+            position,
+            stabilizer,
+            orbit,
+        }
     }
 }
 
 #[cfg(test)]
 mod test {
     use super::*;
+
+    macro_rules! test_sg {
+        ($path:literal, $expected_number:literal) => {
+            let sg = SpaceGroup::from_file($path).unwrap();
+            assert_eq!($expected_number, sg.len())
+        };
+    }
+
     #[test]
-    pub fn parse_test() {
-        let sg = SpaceGroup::from_file("groups/point_groups/example.sg").unwrap();
-        let as_string = format!("{}", sg);
-        println!("{:?}", sg);
-        println!("{}", as_string);
-        assert_eq!(sg, SpaceGroup::from_oplist(&as_string).unwrap());
+    pub fn cardinality_test() {
+        test_sg!("groups/space_groups/P-1", 2);
+        test_sg!("groups/space_groups/P2_1", 2);
+        test_sg!("groups/space_groups/C2|m", 8);
+        test_sg!("groups/space_groups/P2_12_12", 4);
+        test_sg!("groups/space_groups/P2_12_12_1", 4);
+        test_sg!("groups/space_groups/Pmna", 8);
+        test_sg!("groups/space_groups/Cmcm", 16);
+        test_sg!("groups/space_groups/P6_3|mmc", 24);
+        test_sg!("groups/space_groups/Fm-3m", 192);
     }
 }
