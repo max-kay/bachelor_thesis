@@ -5,7 +5,6 @@ mod frac;
 pub(crate) mod macros;
 pub(crate) mod parsers;
 pub mod symmetry;
-pub mod unit_cell;
 
 pub use affine_space::{Affine3, Mat3, Pos3, Vec3};
 pub use frac::Frac;

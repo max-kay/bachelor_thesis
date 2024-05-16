@@ -573,6 +573,7 @@ impl Affine3 {
     }
 
     pub(crate) fn from_parser_operation(pair: Pair<OpListRule>) -> Self {
+        println!("{}", pair.as_str());
         let mut mat: [Frac; 9] = Default::default();
         let mut translation: [Frac; 3] = Default::default();
         for (i, p) in pair.into_inner().enumerate() {
@@ -583,24 +584,27 @@ impl Affine3 {
                 match op.as_rule() {
                     x => {
                         if active_minus {
-                            mat[3 * 0 + i] = Frac::new(-1, 1)
+                            mat[3 * i + 0] = Frac::new(-1, 1)
                         } else {
-                            mat[3 * 0 + i] = 1.into()
+                            mat[3 * i + 0] = 1.into()
                         }
+                        active_minus = false;
                     }
                     y => {
                         if active_minus {
-                            mat[3 * 1 + i] = Frac::new(-1, 1)
+                            mat[3 * i + 1] = Frac::new(-1, 1)
                         } else {
-                            mat[3 * 1 + i] = 1.into()
+                            mat[3 * i + 1] = 1.into()
                         }
+                        active_minus = false;
                     }
                     z => {
                         if active_minus {
-                            mat[3 * 2 + i] = Frac::new(-1, 1)
+                            mat[3 * i + 2] = Frac::new(-1, 1)
                         } else {
-                            mat[3 * 2 + i] = 1.into()
+                            mat[3 * i + 2] = 1.into()
                         }
+                        active_minus = false;
                     }
                     p_rational_num => {
                         let mut num = Frac::from_str(op.as_str()).expect("enforced by grammar");
@@ -619,10 +623,12 @@ impl Affine3 {
                 }
             }
         }
-        Self {
+        let this = Self {
             mat: mat.into(),
             translation: translation.into(),
-        }
+        };
+        println!("{}", this);
+        this
     }
 
     /// creates an object from the parsed pair
@@ -709,7 +715,6 @@ impl<T: Into<Frac>> From<[T; 3]> for Bounds3 {
 }
 impl Display for Affine3 {
     fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        println!("{:?}", self);
         let mut out = String::new();
         for (row, &translation) in (&self.mat.0).chunks(3).zip(self.translation.0.iter()) {
             if !out.is_empty() {

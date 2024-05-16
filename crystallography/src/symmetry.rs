@@ -387,6 +387,24 @@ impl Site {
     }
 }
 
+/// A struct representing an unordered pair
+pub struct UnorderedPair<T: Eq>(T, T);
+
+impl<T: Eq> PartialEq for UnorderedPair<T> {
+    fn eq(&self, other: &Self) -> bool {
+        (self.0 == other.0 && self.1 == other.1) || (self.0 == other.1 && self.1 == other.0)
+    }
+}
+
+impl<T: Eq> Eq for UnorderedPair<T> {}
+
+impl UnorderedPair<Pos3> {
+    /// constructs a pair from its parts
+    pub fn new(a: Pos3, b: Pos3) -> Self {
+        Self(a, b)
+    }
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
@@ -409,5 +427,6 @@ mod test {
         test_sg!("groups/space_groups/Cmcm", 16);
         test_sg!("groups/space_groups/P6_3|mmc", 24);
         test_sg!("groups/space_groups/Fm-3m", 192);
+        test_sg!("groups/space_groups/R-3m", 36);
     }
 }
