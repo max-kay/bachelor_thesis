@@ -22,10 +22,13 @@
 //! -a/2 < x <= a/2
 //! -b/2 < y <= b/2
 //! -c/2 < z <= c/2
+//!
+//! Furthermore, note that implemntation of Ord on structs do not provide mathematical information
+//! about the struct, rather provide a unique way to sort a Vec<T> of the given struct.
 
 use std::{
     fmt::Display,
-    ops::{Add, AddAssign, Mul, Neg, Rem, RemAssign, Sub, SubAssign},
+    ops::{Add, AddAssign, Div, DivAssign, Mul, Neg, Rem, RemAssign, Sub, SubAssign},
     str::FromStr,
 };
 
@@ -35,7 +38,7 @@ use pest::iterators::Pair;
 use crate::{copy_mul_impl, Frac, OpListRule};
 
 /// A vector type using rational indexes
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Vec3([Frac; 3]);
 
 impl Vec3 {
@@ -52,6 +55,12 @@ impl Vec3 {
     /// returns the zero vector
     pub fn zero() -> Self {
         Self([0.into(); 3])
+    }
+}
+
+impl Display for Vec3 {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "[{}, {}, {}]", self.0[0], self.0[1], self.0[2])
     }
 }
 
@@ -146,6 +155,33 @@ impl Mul<Vec3> for Frac {
     }
 }
 
+impl Div<Frac> for Vec3 {
+    type Output = Vec3;
+
+    fn div(self, rhs: Frac) -> Self::Output {
+        self * rhs.reciprocal()
+    }
+}
+
+impl Div<&Frac> for Vec3 {
+    type Output = Vec3;
+
+    fn div(self, rhs: &Frac) -> Self::Output {
+        self / *rhs
+    }
+}
+
+impl DivAssign<Frac> for Vec3 {
+    fn div_assign(&mut self, rhs: Frac) {
+        *self = *self / rhs
+    }
+}
+
+impl DivAssign<&Frac> for Vec3 {
+    fn div_assign(&mut self, rhs: &Frac) {
+        *self = *self / rhs
+    }
+}
 impl Neg for Vec3 {
     type Output = Vec3;
 
@@ -168,6 +204,7 @@ impl Rem<Bounds3> for Vec3 {
 
     fn rem(mut self, rhs: Bounds3) -> Self::Output {
         self.0.iter_mut().zip(rhs.0.iter()).for_each(|(a, b)| {
+            let b = Frac::new(*b, 1);
             *a %= b;
             if *a / b > Frac::new(1, 2) {
                 *a -= b
@@ -198,7 +235,7 @@ impl RemAssign<&Bounds3> for Vec3 {
 }
 
 /// A position type using rational values
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Pos3([Frac; 3]);
 
 impl Pos3 {
@@ -215,6 +252,12 @@ impl Pos3 {
     /// returns the origin (0, 0, 0)
     pub fn origin() -> Self {
         Self([0_u16.into(); 3])
+    }
+}
+
+impl Display for Pos3 {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "[{}, {}, {}]", self.0[0], self.0[1], self.0[2])
     }
 }
 
@@ -299,7 +342,7 @@ impl Rem<Bounds3> for Pos3 {
         self.0
             .iter_mut()
             .zip(rhs.0.iter())
-            .for_each(|(a, b)| *a %= b);
+            .for_each(|(a, b)| *a %= Frac::new(*b, 1));
         self
     }
 }
@@ -329,7 +372,7 @@ impl RemAssign<&Bounds3> for Pos3 {
 //  x x x]
 // represented like this
 /// A 3x3 Matrix using rational components
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Mat3([Frac; 9]);
 
 impl Mat3 {
@@ -510,9 +553,11 @@ impl Mul<Pos3> for Mat3 {
     }
 }
 
+copy_mul_impl!(Mat3, Pos3);
+
 /// an affine transformation using rational components
 /// the affine transformation consists of a matrix multiplication and then the addition of a vector
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Affine3 {
     mat: Mat3,
     translation: Vec3,
@@ -573,7 +618,6 @@ impl Affine3 {
     }
 
     pub(crate) fn from_parser_operation(pair: Pair<OpListRule>) -> Self {
-        println!("{}", pair.as_str());
         let mut mat: [Frac; 9] = Default::default();
         let mut translation: [Frac; 3] = Default::default();
         for (i, p) in pair.into_inner().enumerate() {
@@ -623,12 +667,10 @@ impl Affine3 {
                 }
             }
         }
-        let this = Self {
+        Self {
             mat: mat.into(),
             translation: translation.into(),
-        };
-        println!("{}", this);
-        this
+        }
     }
 
     /// creates an object from the parsed pair
@@ -638,6 +680,16 @@ impl Affine3 {
             OpListRule::translation_op => Self::from_parser_trans_op(pair),
             _ => unreachable!(), // by grammar
         }
+    }
+
+    /// returns the matrix of the transformation
+    pub fn mat(&self) -> Mat3 {
+        self.mat
+    }
+
+    /// returns the translation of the transformation
+    pub fn translation(&self) -> Vec3 {
+        self.translation
     }
 }
 
@@ -693,20 +745,75 @@ impl Affine3 {
     }
 }
 
-/// A struct used for the Remainder implementation
-#[derive(Copy, Clone)]
-pub struct Bounds3([Frac; 3]);
+/// A struct used for the remainder implementation
+#[derive(Copy, Clone, Debug)]
+pub struct Bounds3([i32; 3]);
 
 impl Bounds3 {
     /// Creates a bounds struct with all values set to the given value
-    pub fn splat(val: Frac) -> Self {
+    pub fn splat(val: i32) -> Self {
+        assert!(val > 0, "bounds must be positive");
         Self([val; 3])
+    }
+
+    /// Creates bounds which can include all roatations around the origin of the give vector
+    pub fn include_rotations_of(vec: Vec3) -> Self {
+        let max = vec.norm().ceil() as i32 + 1;
+        Self([max; 3])
+    }
+
+    /// counts how many unit cells are inculded in the bounds
+    pub fn volume(&self) -> i32 {
+        self.0.iter().fold(1, |acc, a| acc * a)
+    }
+
+    /// returns x bound
+    pub fn x(&self) -> i32 {
+        self.0[0]
+    }
+
+    /// returns y bound
+    pub fn y(&self) -> i32 {
+        self.0[1]
+    }
+
+    /// returns z bound
+    pub fn z(&self) -> i32 {
+        self.0[2]
+    }
+
+    /// returns true if the position is in the correct form for these bounds
+    pub fn contains_pos(&self, pos: Pos3) -> bool {
+        self.0
+            .iter()
+            .zip(pos.0.into_iter())
+            .fold(true, |acc, (&b, p)| {
+                acc && (p < b.into()) && (p >= 0.into())
+            })
+    }
+
+    /// returns true if the vector is in the correct form for these bounds
+    pub fn contains_vec(&self, vec: Vec3) -> bool {
+        self.0
+            .iter()
+            .zip(vec.0.into_iter())
+            .fold(true, |acc, (&b, p)| {
+                acc && (p <= Frac::new(b, 2)) && (p > Frac::new(-b, 2))
+            })
+    }
+
+    /// returns true if all positions in the array are bigger than zero and smaller than the bounds
+    /// at the corresponding index
+    pub fn contains_arr(&self, arr: &[i32; 3]) -> bool {
+        self.0.iter().zip(arr.iter()).fold(true, |acc, (&b, &p)| {
+            acc && (p < b.into()) && (p >= 0.into())
+        })
     }
 }
 
-impl<T: Into<Frac>> From<[T; 3]> for Bounds3 {
+impl<T: Into<i32>> From<[T; 3]> for Bounds3 {
     fn from(value: [T; 3]) -> Self {
-        let mut arr: [Frac; 3] = Default::default();
+        let mut arr: [i32; 3] = Default::default();
         for (i, val) in value.into_iter().enumerate() {
             arr[i] = val.into();
         }
@@ -959,5 +1066,16 @@ mod tests {
             Vec3::new((-1).into(), 1.into(), 0.into()),
             Vec3::new(2.into(), 1.into(), 1.into()) % super_cell
         );
+    }
+
+    #[test]
+    fn contains_test() {
+        let bounds: Bounds3 = [1, 4, 5].into();
+        let mut vec: Vec3 = [2, 4, 4].into();
+        assert!(bounds.contains_vec(vec % bounds));
+        vec /= Frac::new(2, 1);
+        assert!(bounds.contains_vec(vec % bounds));
+        vec /= Frac::new(3, 1);
+        assert!(bounds.contains_vec(vec % bounds));
     }
 }

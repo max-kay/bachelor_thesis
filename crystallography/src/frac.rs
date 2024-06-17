@@ -41,26 +41,34 @@ impl Frac {
         }
     }
 
-    /// returns the floor of the Fraction
-    pub fn floor(self) -> Self {
+    /// returns the floor as an i32
+    pub fn floor_i32(self) -> i32 {
         let rem = self.0.rem_euclid(self.1);
-        let int = if rem == 0 {
+        if rem == 0 {
             self.0 / self.1
         } else {
             (self.0 - rem) / self.1
-        };
-        Self(int, 1)
+        }
+    }
+
+    /// returns the floor of the Fraction
+    pub fn floor(self) -> Self {
+        Self(self.floor_i32(), 1)
+    }
+
+    /// returns the ceil as i32
+    pub fn ceil_i32(self) -> i32 {
+        let rem = self.0.rem_euclid(self.1);
+        if rem == 0 {
+            self.0 / self.1
+        } else {
+            (self.0 - rem) / self.1 + 1
+        }
     }
 
     /// returns the ceil of the Fraction
     pub fn ceil(self) -> Self {
-        let rem = self.0.rem_euclid(self.1);
-        let int = if rem == 0 {
-            self.0 / self.1
-        } else {
-            (self.0 - rem) / self.1 + 1
-        };
-        Self(int, 1)
+        Self(self.ceil_i32(), 1)
     }
 
     /// returns the numerator
@@ -71,6 +79,11 @@ impl Frac {
     /// returns the denominator
     pub fn get_denominator(&self) -> i32 {
         self.1
+    }
+
+    /// returns the reciprocal of the fraction
+    pub fn reciprocal(&self) -> Self {
+        Self::new(self.1, self.0)
     }
 }
 
@@ -538,7 +551,6 @@ mod tests {
     #[test]
     fn test_rem() {
         let result: Frac = Frac::from_str("1/1").unwrap() % Frac::from_str("1/2").unwrap();
-        println!("{result}");
         assert_eq!(result, 0.into());
         let result: Frac = Frac::from_str("5/8").unwrap() % Frac::from_str("1/4").unwrap();
         assert_eq!(result, Frac::from_str("1/8").unwrap());
