@@ -3,7 +3,7 @@ name: Deploy to GitHub Pages
 on:
   push:
     branches:
-      - master
+      - main
 
 jobs:
   deploy:
@@ -29,7 +29,8 @@ jobs:
           cd site
           npm install
           npm run build
-          cp dist/index.html ../../
+          cd ../../
+          cp -r website/site/dist ./
 
       - name: Push to gh-pages branch
         uses: peaceiris/actions-gh-pages@v3
