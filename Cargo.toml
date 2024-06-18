@@ -1,4 +1,4 @@
 [workspace]
 resolver = "2"
 
-members = [ "find-pairs", "crystallography" ]
+members = [ "find-pairs", "crystallography" , "website"]

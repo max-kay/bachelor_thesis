@@ -1,0 +1,19 @@
+[package]
+name = "website"
+version = "0.1.0"
+authors = ["Max Krummenacher <maxkrummenacher@bluewin.ch>"]
+edition = "2018"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+wasm-bindgen = "0.2.63"
+crystallography = { path = "../crystallography" }
+
+[dependencies.web-sys]
+version = "0.3"
+features = ["console"]
+
+[profile.release]
+opt-level = 3

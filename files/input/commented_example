@@ -5,10 +5,12 @@ Space Group:
 // pure translations are given like this
 1/2,1/2,0;
 
-// this is the affine transformation which maps (x, y, z) to (-x, -y, -z)
+// this is the affine transformation
+// which maps (x, y, z) to (-x, -y, -z)
 -x,-y,-z;
 
-// this is the affine transformation which maps (x, y, z) to (-x, -y, z + 1/2)
+// this is the affine transformation
+// which maps (x, y, z) to (-x, -y, z + 1/2)
 -x,-y,z+1/2;
 -x,y,-z+1/2;
 
@@ -23,5 +25,6 @@ Bounds:
 // The bounds which are applied to the problem 
 5,5,5; // must be integers
 
-Mixed Pairs: // mixed fields are optional default = false
+Mixed Pairs:
+// mixed fields are optional default = false
 true;
