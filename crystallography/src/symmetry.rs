@@ -10,13 +10,11 @@ use std::{
 
 use anyhow::Result;
 use nalgebra::Matrix3;
-use pest::iterators::Pair as ParserPair;
+use pest::iterators::{Pair as ParserPair, Pairs};
 use pest::Parser;
 use thiserror::Error;
 
-use crate::{
-    affine_space::Bounds3, copy_mul_impl, Affine3, Mat3, OpListParser, OpListRule, Pos3, Vec3,
-};
+use crate::{affine_space::Bounds3, copy_mul_impl, Affine3, Mat3, MyParser, Pos3, Rule, Vec3};
 
 #[derive(Error, Debug)]
 enum InvalidOpError {
@@ -211,7 +209,8 @@ impl Isometry {
     }
 
     /// creates the symmetry element from a parsed pair
-    pub(crate) fn from_parser(pair: ParserPair<OpListRule>) -> Result<Self> {
+    pub(crate) fn from_parser(pair: ParserPair<Rule>) -> Result<Self> {
+        debug_assert!(pair.as_rule() == Rule::affine || pair.as_rule() == Rule::vector);
         Ok(Self::new(Affine3::from_parser(pair))?)
     }
 
@@ -379,13 +378,10 @@ impl IsometryGroup {
     /// this function takes a oplist as a string and parses it
     /// note that the parsed symmetry operations are sent through SpaceGroup::from_symmetries thus
     /// the same conditions for panicing applies
-    pub fn from_oplist(oplist: &str) -> Result<Self> {
-        let parsed = OpListParser::parse(OpListRule::op_list, oplist)?
-            .next()
-            .expect("never fails according to docs");
-        let pairs = parsed.into_inner();
+    pub fn from_affine_list(pairs: Pairs<Rule>) -> Result<Self> {
         let mut symmetries = Vec::new();
         for pair in pairs {
+            println!("{:?}", pair.as_rule());
             symmetries.push(Isometry::from_parser(pair)?);
         }
         Ok(Self::from_generators(symmetries))
@@ -395,7 +391,10 @@ impl IsometryGroup {
     /// SpaceGroup::from_oplist
     pub fn from_file(path: impl AsRef<Path>) -> Result<Self> {
         let string = read_to_string(path)?;
-        Self::from_oplist(&string).into()
+        let parsed = MyParser::parse(Rule::affine_list, &string)?
+            .next()
+            .expect("never fails");
+        Self::from_affine_list(parsed.into_inner()).into()
     }
 
     /// returns an iterator over the symmetry operations in the given bounds
@@ -573,21 +572,21 @@ mod test {
 
     #[test]
     pub fn cardinality_test() {
-        test_sg!("groups/space_groups/P-1", 2);
-        test_sg!("groups/space_groups/P2_1", 2);
-        test_sg!("groups/space_groups/C2|m", 8);
-        test_sg!("groups/space_groups/P2_12_12", 4);
-        test_sg!("groups/space_groups/P2_12_12_1", 4);
-        test_sg!("groups/space_groups/Pmna", 8);
-        test_sg!("groups/space_groups/Cmcm", 16);
-        test_sg!("groups/space_groups/P6_3|mmc", 24);
-        test_sg!("groups/space_groups/Fm-3m", 192);
-        test_sg!("groups/space_groups/R-3m", 36);
+        test_sg!("../files/space_groups/P-1", 2);
+        test_sg!("../files/space_groups/P2_1", 2);
+        test_sg!("../files/space_groups/C2|m", 8);
+        test_sg!("../files/space_groups/P2_12_12", 4);
+        test_sg!("../files/space_groups/P2_12_12_1", 4);
+        test_sg!("../files/space_groups/Pmna", 8);
+        test_sg!("../files/space_groups/Cmcm", 16);
+        test_sg!("../files/space_groups/P6_3|mmc", 24);
+        test_sg!("../files/space_groups/Fm-3m", 192);
+        test_sg!("../files/space_groups/R-3m", 36);
     }
 
     #[test]
     pub fn iter_test() {
-        let sg = IsometryGroup::from_file("groups/space_groups/P-1").unwrap();
+        let sg = IsometryGroup::from_file("../files/space_groups/P-1").unwrap();
         let ops: Vec<_> = sg.iter_with_bounds(Bounds3::splat(1)).collect();
         assert_eq!(ops.len(), 2);
         let ops: Vec<_> = sg.iter_with_bounds(Bounds3::splat(2)).collect();

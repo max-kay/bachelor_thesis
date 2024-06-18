@@ -1,12 +1,16 @@
 //! This modules contains the structs necessary to represent Wyckoff positions and Pairs
 
+use std::{any, fs::read_to_string, path::Path, rc::Rc};
+
+use anyhow::Result;
+use pest::{iterators::Pairs, Parser};
+
 use crate::{
     symmetry::{IsometryGroup, IsometryIter},
-    Bounds3, Pos3, Vec3,
+    Bounds3, MyParser, Pos3, Rule, Vec3,
 };
 
 /// this struct represents a collection of sites within the given bounds
-#[derive(Clone)]
 pub struct Site {
     position: Pos3,
     stabilizer: IsometryGroup,
@@ -68,7 +72,7 @@ impl Eq for Site {}
 
 /// a struct representing a pair of symmetry related positions
 pub struct PairExpansion {
-    origin_site: Site,
+    origin_site: Rc<Site>,
     vec: Vec3,
     expansion: Vec<Pos3>,
 }
@@ -91,13 +95,12 @@ impl PairExpansion {
     /// this function calculates the pair expansion of this pair.
     /// note that the pair must be between symmetry equivalent positions.
     pub fn from_positions(
-        origin_site: Site,
+        origin_site: Rc<Site>,
         end_position: Pos3,
         group: &IsometryGroup,
         bounds: Bounds3,
     ) -> Self {
         let origin_position = origin_site.position;
-        let origin_site = Site::new(&group, origin_position);
 
         let mut expansion = Vec::new();
         for op in group.iter_with_bounds(bounds) {
@@ -135,13 +138,13 @@ impl PairExpansion {
 /// represents all pairs which can be formed within the given bounds.
 pub struct PairCollection {
     space_group: IsometryGroup,
-    sites: Vec<Site>,
+    sites: Vec<Rc<Site>>,
     expansions: Vec<PairExpansion>,
     bounds: Bounds3,
 }
 
 /// tests if the position is contained within any of the orbits of the sites given
-fn contains_position(sites: &[Site], position: Pos3) -> bool {
+fn contains_position(sites: &[Rc<Site>], position: Pos3) -> bool {
     for site in sites {
         if site.orbit.contains(&position) {
             return true;
@@ -166,7 +169,7 @@ impl PairCollection {
         let mut sites = Vec::new();
         for pos in positions {
             if !contains_position(&sites, pos) {
-                sites.push(Site::new(&group, pos))
+                sites.push(Rc::new(Site::new(&group, pos)))
             }
         }
         let mut expansions = Vec::new();
@@ -176,11 +179,11 @@ impl PairCollection {
         }
 
         if construct_ab_pairs {
-            for site_1 in &sites {
-                for site_2 in &sites {
+            for (i, site_1) in sites.iter().enumerate() {
+                for site_2 in &sites[i + 1..] {
                     expansions.append(&mut construct_2_site_pairs(
-                        site_1.clone(),
-                        site_2.clone(),
+                        Rc::clone(site_1),
+                        Rc::clone(site_2),
                         bounds,
                         &group,
                     ))
@@ -195,14 +198,60 @@ impl PairCollection {
         }
     }
 
+    pub fn from_file(path: impl AsRef<Path>) -> Result<Self> {
+        let string = read_to_string(path)?;
+        Self::from_str(&string)
+    }
+
+    pub fn from_str(string: &str) -> Result<Self> {
+        let parsed = MyParser::parse(Rule::file, string)?;
+        Self::from_pairs(parsed)
+    }
+
+    pub fn from_pairs(mut pairs: Pairs<Rule>) -> Result<Self> {
+        let pairs = pairs.next().expect("must contain file").into_inner();
+        let mut group = None;
+        let mut positions = Vec::new();
+        let mut bounds = None;
+        let mut construct_ab_pairs = false;
+        for pair in pairs {
+            match pair.as_rule() {
+                Rule::affine_list => {
+                    group = Some(IsometryGroup::from_affine_list(pair.into_inner())?);
+                }
+                Rule::vector => {
+                    positions.push(Pos3::from_parser_vector(pair));
+                }
+                Rule::int_vector => {
+                    bounds = Some(Bounds3::from_parser_int_vector(pair));
+                }
+                Rule::bool => {
+                    construct_ab_pairs = match pair.as_str() {
+                        "true" => true,
+                        "false" => false,
+                        _ => unreachable!("unreachable by grammar"),
+                    };
+                }
+                Rule::EOI => (),
+                _ => unreachable!("unreachable by grammar but got: {:?}", pair.as_rule()),
+            }
+        }
+        Ok(Self::new(
+            group.expect("enforced by grammar"),
+            positions,
+            bounds.expect("enforced by grammar"),
+            construct_ab_pairs,
+        ))
+    }
+
     /// produces a string table of the results
     pub fn produce_output_string(&self) -> String {
         let mut string = format!(
-            "{: <15}, {: <15}, {: <15}",
+            "{: >20}, {: >20}, {: >20}",
             "Origin", "Vector", "Multiplicity"
         );
         for (a, b, c) in self.expansions.iter().map(PairExpansion::to_string) {
-            string += &format!("\n{: <15}, {: <15}, {: <15}", a, b, c);
+            string += &format!("\n{: >20}, {: >20}, {: >12}", a, b, c);
         }
         string
     }
@@ -220,12 +269,16 @@ fn contains_pair(expansions: &[PairExpansion], origin_position: Pos3, end_positi
 
 /// constructs all pair which can be formed from pairs of positions in this site within the given
 /// bounds
-fn construct_site_pairs(site: Site, bounds: Bounds3, group: &IsometryGroup) -> Vec<PairExpansion> {
+fn construct_site_pairs(
+    site: Rc<Site>,
+    bounds: Bounds3,
+    group: &IsometryGroup,
+) -> Vec<PairExpansion> {
     let mut out = Vec::new();
     for pos in site.orbit_in_bounds(bounds) {
         if !contains_pair(&out, site.position, pos) {
             out.push(PairExpansion::from_positions(
-                site.clone(),
+                Rc::clone(&site),
                 pos,
                 group,
                 bounds,
@@ -238,8 +291,8 @@ fn construct_site_pairs(site: Site, bounds: Bounds3, group: &IsometryGroup) -> V
 /// constructs all pairs which have their origin at site_1 and their end point at one of the
 /// positions of site_2
 fn construct_2_site_pairs(
-    site_1: Site,
-    site_2: Site,
+    site_1: Rc<Site>,
+    site_2: Rc<Site>,
     bounds: Bounds3,
     group: &IsometryGroup,
 ) -> Vec<PairExpansion> {
@@ -257,3 +310,29 @@ fn construct_2_site_pairs(
     }
     out
 }
+
+// #[cfg(test)]
+// mod test {
+//     use crate::Frac;
+//
+//     use super::*;
+//
+//     #[test]
+//     fn test() {
+//         let sg = IsometryGroup::from_file("groups/space_groups/P2_12_12_1").unwrap();
+//         println!(
+//             "{}",
+//             PairCollection::new(
+//                 sg,
+//                 vec![
+//                     [0, 0, 0].into(),
+//                     [Frac::new(1, 4), Frac::new(1, 4), 2.into()].into()
+//                 ],
+//                 Bounds3::splat(4),
+//                 true
+//             )
+//             .produce_output_string()
+//         );
+//         panic!()
+//     }
+// }

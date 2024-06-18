@@ -33,9 +33,9 @@ use std::{
 };
 
 use nalgebra::{Matrix3, Point3, Vector3};
-use pest::iterators::Pair;
+use pest::{iterators::Pair, parses_to};
 
-use crate::{copy_mul_impl, Frac, OpListRule};
+use crate::{copy_mul_impl, Frac, Rule};
 
 /// A vector type using rational indexes
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
@@ -55,6 +55,32 @@ impl Vec3 {
     /// returns the zero vector
     pub fn zero() -> Self {
         Self([0.into(); 3])
+    }
+
+    pub(crate) fn from_parser_vector(pair: Pair<Rule>) -> Self {
+        debug_assert_eq!(pair.as_rule(), Rule::vector);
+        let mut vec: [Frac; 3] = Default::default();
+        for (i, t) in pair.into_inner().enumerate() {
+            debug_assert_eq!(t.as_rule(), Rule::coefficient);
+            let mut active_minus = false;
+            let mut iter = t.into_inner();
+            while let Some(p) = iter.next() {
+                if p.as_rule() == Rule::sign {
+                    if p.as_str() == "-" {
+                        active_minus = true;
+                    }
+                } else if p.as_rule() == Rule::p_rational_num {
+                    let mut num = Frac::from_str(p.as_str()).expect("enforced by grammar");
+                    if active_minus {
+                        num = -num;
+                    }
+                    vec[i] = num;
+                } else {
+                    unreachable!()
+                }
+            }
+        }
+        vec.into()
     }
 }
 
@@ -252,6 +278,10 @@ impl Pos3 {
     /// returns the origin (0, 0, 0)
     pub fn origin() -> Self {
         Self([0_u16.into(); 3])
+    }
+
+    pub(crate) fn from_parser_vector(pair: Pair<Rule>) -> Self {
+        Vec3::from_parser_vector(pair).into()
     }
 }
 
@@ -593,38 +623,15 @@ impl Affine3 {
         }
     }
 
-    pub(crate) fn from_parser_trans_op(pair: Pair<OpListRule>) -> Self {
-        let mut translation: [Frac; 3] = Default::default();
-        for (i, t) in pair.into_inner().enumerate() {
-            debug_assert_eq!(t.as_rule(), OpListRule::coeff_translation);
-            let mut active_minus = false;
-            let mut iter = t.into_inner();
-            while let Some(p) = iter.next() {
-                if p.as_rule() == OpListRule::sign {
-                    if p.as_str() == "-" {
-                        active_minus = true;
-                    }
-                }
-                if p.as_rule() == OpListRule::p_rational_num {
-                    let mut num = Frac::from_str(p.as_str()).expect("enforced by grammar");
-                    if active_minus {
-                        num = -num;
-                    }
-                    translation[i] = num;
-                }
-            }
-        }
-        Affine3::from_translation(translation.into())
-    }
-
-    pub(crate) fn from_parser_operation(pair: Pair<OpListRule>) -> Self {
+    pub(crate) fn from_parser_affine(pair: Pair<Rule>) -> Self {
+        debug_assert_eq!(pair.as_rule(), Rule::affine);
         let mut mat: [Frac; 9] = Default::default();
         let mut translation: [Frac; 3] = Default::default();
         for (i, p) in pair.into_inner().enumerate() {
-            debug_assert_eq!(p.as_rule(), OpListRule::coeff_op);
+            debug_assert_eq!(p.as_rule(), Rule::affine_coefficient);
             let mut active_minus = false;
             for op in p.into_inner() {
-                use OpListRule::*;
+                use Rule::*;
                 match op.as_rule() {
                     x => {
                         if active_minus {
@@ -674,11 +681,11 @@ impl Affine3 {
     }
 
     /// creates an object from the parsed pair
-    pub(crate) fn from_parser(pair: Pair<OpListRule>) -> Self {
+    pub(crate) fn from_parser(pair: Pair<Rule>) -> Self {
         match pair.as_rule() {
-            OpListRule::operation => Self::from_parser_operation(pair),
-            OpListRule::translation_op => Self::from_parser_trans_op(pair),
-            _ => unreachable!(), // by grammar
+            Rule::affine => Self::from_parser_affine(pair),
+            Rule::vector => Vec3::from_parser_vector(pair).into(),
+            _ => unreachable!("{:?}", pair.as_rule()), // by grammar
         }
     }
 
@@ -760,6 +767,15 @@ impl Bounds3 {
     pub fn include_rotations_of(vec: Vec3) -> Self {
         let max = vec.norm().ceil() as i32 + 1;
         Self([max; 3])
+    }
+
+    pub fn from_parser_int_vector(pair: Pair<Rule>) -> Self {
+        debug_assert_eq!(pair.as_rule(), Rule::int_vector);
+        let mut bounds = [0; 3];
+        for (i, pair) in pair.into_inner().enumerate() {
+            bounds[i] = i32::from_str(pair.as_str()).expect("enforced by parser");
+        }
+        bounds.into()
     }
 
     /// counts how many unit cells are inculded in the bounds

@@ -1,0 +1,79 @@
+/// matches whitespace
+WHITESPACE = _{ (" " | "\t")+ }
+
+/// allows for comments
+COMMENT = _{ "//" ~ (!NEWLINE ~ ANY)* ~ (NEWLINE | EOI) }
+
+/// matches an end of line
+delimiter = _{ (";" ~ NEWLINE*) }
+
+/// matches x coordinate
+x = { "x" }
+
+/// matches y coordinate
+y = { "y" }
+
+/// matches z coordinate
+z = { "z" }
+
+/// matches a sign
+sign = { "+" | "-" }
+
+/// matches non-negative integers
+integer = ${ ASCII_DIGIT+ }
+
+/// any nonzero digit
+nz_digit = { '1' .. '9' }
+
+/// any version of zero
+num_zero = ${ "0"+ ~ !nz_digit }
+
+/// matches any positive integer
+positive_integer = { nz_digit ~ ASCII_DIGIT* }
+
+/// matches valid positive rantional numbers
+p_rational_num = {
+    (integer ~ "/" ~ !num_zero ~ integer | integer ~ !"/")
+}
+
+/// matches the affine transformation on one coefficient
+affine_coefficient = {
+    sign? ~ x ~ (sign ~ y)? ~ (sign ~ z)? ~ (sign ~ p_rational_num)?
+  | sign? ~ y ~ (sign ~ z)? ~ (sign ~ p_rational_num)?
+  | sign? ~ z ~ (sign ~ p_rational_num)?
+}
+
+/// matches the affine transformation
+affine = { ( affine_coefficient ~ ","){2} ~ affine_coefficient }
+
+/// matches any rational number
+coefficient = { sign? ~ p_rational_num }
+
+/// matches a rational vector
+vector = { (coefficient ~ ","){2} ~ coefficient }
+
+/// matches an integer vector
+int_vector = { (positive_integer ~ ","){2} ~ positive_integer }
+
+/// matches a list of affine transformations (including vectors as translations)
+affine_list = { ((affine | vector) ~ delimiter)+ }
+
+/// a boolean type
+bool = { "true" | "false" }
+
+/// input file
+file = {
+    NEWLINE*
+    ~ "Space Group:"
+    ~ NEWLINE*
+    ~ affine_list
+    ~ "Positions:"
+    ~ NEWLINE*
+    ~ (vector ~ delimiter)+
+    ~ "Bounds:"
+    ~ NEWLINE*
+    ~ (int_vector ~ delimiter)
+    ~ ("Mixed Pairs:" ~ NEWLINE* ~ bool ~ ";"?)?
+    ~ NEWLINE*
+    ~ EOI
+}

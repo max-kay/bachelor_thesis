@@ -1,0 +1,27 @@
+// this is a comment
+// this an example using the space group Cmcm
+Space Group:
+
+// pure translations are given like this
+1/2,1/2,0;
+
+// this is the affine transformation which maps (x, y, z) to (-x, -y, -z)
+-x,-y,-z;
+
+// this is the affine transformation which maps (x, y, z) to (-x, -y, z + 1/2)
+-x,-y,z+1/2;
+-x,y,-z+1/2;
+
+
+
+Positions:
+// Positions to form pairs from
+0,0,0;
+0,0,1/2; // must be given as rational numbers
+
+Bounds:
+// The bounds which are applied to the problem 
+5,5,5; // must be integers
+
+Mixed Pairs: // mixed fields are optional default = false
+true;

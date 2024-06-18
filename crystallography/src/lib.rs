@@ -9,4 +9,4 @@ pub mod symmetry;
 
 pub use affine_space::{Affine3, Bounds3, Mat3, Pos3, Vec3};
 pub use frac::Frac;
-pub(crate) use parsers::oplist::{Parser as OpListParser, Rule as OpListRule};
+pub(crate) use parsers::{MyParser, Rule};
