@@ -3,8 +3,6 @@ use std::fs::File;
 use std::io::Write;
 use std::path::Path;
 
-use crystallography::objects::PairCollection;
-
 fn print_help() {
     println!("Usage: find-pairs [OPTIONS] <input> <output>");
     println!();
@@ -17,7 +15,10 @@ fn print_help() {
 }
 
 fn make_output<P: AsRef<Path>>(path: P) -> anyhow::Result<String> {
-    Ok(PairCollection::from_file(path)?.produce_output_string())
+    let (group, positions, bounds, construct_ab_pairs) = crystallography::objects::from_file(path)?;
+    let (_, _, expansions, _) =
+        crystallography::objects::calculate_pairs(group, positions, bounds, construct_ab_pairs);
+    Ok(crystallography::objects::produce_output_string(&expansions))
 }
 
 fn main() -> anyhow::Result<()> {

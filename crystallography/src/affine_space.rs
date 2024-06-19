@@ -33,7 +33,7 @@ use std::{
 };
 
 use nalgebra::{Matrix3, Point3, Vector3};
-use pest::{iterators::Pair, parses_to};
+use pest::iterators::Pair;
 
 use crate::{copy_mul_impl, Frac, Rule};
 
@@ -769,6 +769,7 @@ impl Bounds3 {
         Self([max; 3])
     }
 
+    /// creates bounds from the given pair
     pub fn from_parser_int_vector(pair: Pair<Rule>) -> Self {
         debug_assert_eq!(pair.as_rule(), Rule::int_vector);
         let mut bounds = [0; 3];

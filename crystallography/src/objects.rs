@@ -1,6 +1,6 @@
 //! This modules contains the structs necessary to represent Wyckoff positions and Pairs
 
-use std::{any, fs::read_to_string, path::Path, rc::Rc};
+use std::{fs::read_to_string, path::Path, rc::Rc};
 
 use anyhow::Result;
 use pest::{iterators::Pairs, Parser};
@@ -135,14 +135,6 @@ impl PairExpansion {
     }
 }
 
-/// represents all pairs which can be formed within the given bounds.
-pub struct PairCollection {
-    space_group: IsometryGroup,
-    sites: Vec<Rc<Site>>,
-    expansions: Vec<PairExpansion>,
-    bounds: Bounds3,
-}
-
 /// tests if the position is contained within any of the orbits of the sites given
 fn contains_position(sites: &[Rc<Site>], position: Pos3) -> bool {
     for site in sites {
@@ -153,108 +145,104 @@ fn contains_position(sites: &[Rc<Site>], position: Pos3) -> bool {
     return false;
 }
 
-impl PairCollection {
-    /// constructs all pairs from the positions. The positions are deduplicated using the space
-    /// group befor applying the algorithm.
-    /// If construct ab pairs is set to true the pairs of different sites are constructed to.
-    pub fn new(
-        group: IsometryGroup,
-        mut positions: Vec<Pos3>,
-        bounds: Bounds3,
-        construct_ab_pairs: bool,
-    ) -> Self {
-        positions
-            .iter_mut()
-            .for_each(|p| *p = *p % Bounds3::splat(1));
-        let mut sites = Vec::new();
-        for pos in positions {
-            if !contains_position(&sites, pos) {
-                sites.push(Rc::new(Site::new(&group, pos)))
+/// constructs all pairs from the positions. The positions are deduplicated using the space
+/// group befor applying the algorithm.
+/// If construct ab pairs is set to true the pairs of different sites are constructed to.
+pub fn calculate_pairs(
+    group: IsometryGroup,
+    mut positions: Vec<Pos3>,
+    bounds: Bounds3,
+    construct_ab_pairs: bool,
+) -> (IsometryGroup, Vec<Rc<Site>>, Vec<PairExpansion>, Bounds3) {
+    positions
+        .iter_mut()
+        .for_each(|p| *p = *p % Bounds3::splat(1));
+    let mut sites = Vec::new();
+    for pos in positions {
+        if !contains_position(&sites, pos) {
+            sites.push(Rc::new(Site::new(&group, pos)))
+        }
+    }
+    let mut expansions = Vec::new();
+
+    for site in &sites {
+        expansions.append(&mut construct_site_pairs(site.clone(), bounds, &group));
+    }
+
+    if construct_ab_pairs {
+        for (i, site_1) in sites.iter().enumerate() {
+            for site_2 in &sites[i + 1..] {
+                expansions.append(&mut construct_2_site_pairs(
+                    Rc::clone(site_1),
+                    Rc::clone(site_2),
+                    bounds,
+                    &group,
+                ))
             }
         }
-        let mut expansions = Vec::new();
+    }
+    (group, sites, expansions, bounds)
+}
 
-        for site in &sites {
-            expansions.append(&mut construct_site_pairs(site.clone(), bounds, &group));
-        }
+/// parses the file into the arguments for calculate pairs
+pub fn from_file(path: impl AsRef<Path>) -> Result<(IsometryGroup, Vec<Pos3>, Bounds3, bool)> {
+    let string = read_to_string(path)?;
+    from_str(&string)
+}
 
-        if construct_ab_pairs {
-            for (i, site_1) in sites.iter().enumerate() {
-                for site_2 in &sites[i + 1..] {
-                    expansions.append(&mut construct_2_site_pairs(
-                        Rc::clone(site_1),
-                        Rc::clone(site_2),
-                        bounds,
-                        &group,
-                    ))
-                }
+/// parses the string into the arguments for calculate pairs
+pub fn from_str(string: &str) -> Result<(IsometryGroup, Vec<Pos3>, Bounds3, bool)> {
+    let parsed = MyParser::parse(Rule::file, string)?;
+    tree_to_args(parsed)
+}
+
+/// parses the pairs into the arguments for calculate pairs
+pub fn tree_to_args(mut pairs: Pairs<Rule>) -> Result<(IsometryGroup, Vec<Pos3>, Bounds3, bool)> {
+    let pairs = pairs.next().expect("must contain file").into_inner();
+    let mut group = None;
+    let mut positions = Vec::new();
+    let mut bounds = None;
+    let mut construct_ab_pairs = false;
+    for pair in pairs {
+        match pair.as_rule() {
+            Rule::affine_list => {
+                group = Some(IsometryGroup::from_affine_list(pair.into_inner())?);
             }
-        }
-        Self {
-            sites,
-            expansions,
-            space_group: group,
-            bounds,
-        }
-    }
-
-    pub fn from_file(path: impl AsRef<Path>) -> Result<Self> {
-        let string = read_to_string(path)?;
-        Self::from_str(&string)
-    }
-
-    pub fn from_str(string: &str) -> Result<Self> {
-        let parsed = MyParser::parse(Rule::file, string)?;
-        Self::from_pairs(parsed)
-    }
-
-    pub fn from_pairs(mut pairs: Pairs<Rule>) -> Result<Self> {
-        let pairs = pairs.next().expect("must contain file").into_inner();
-        let mut group = None;
-        let mut positions = Vec::new();
-        let mut bounds = None;
-        let mut construct_ab_pairs = false;
-        for pair in pairs {
-            match pair.as_rule() {
-                Rule::affine_list => {
-                    group = Some(IsometryGroup::from_affine_list(pair.into_inner())?);
-                }
-                Rule::vector => {
-                    positions.push(Pos3::from_parser_vector(pair));
-                }
-                Rule::int_vector => {
-                    bounds = Some(Bounds3::from_parser_int_vector(pair));
-                }
-                Rule::bool => {
-                    construct_ab_pairs = match pair.as_str() {
-                        "true" => true,
-                        "false" => false,
-                        _ => unreachable!("unreachable by grammar"),
-                    };
-                }
-                Rule::EOI => (),
-                _ => unreachable!("unreachable by grammar but got: {:?}", pair.as_rule()),
+            Rule::vector => {
+                positions.push(Pos3::from_parser_vector(pair));
             }
+            Rule::int_vector => {
+                bounds = Some(Bounds3::from_parser_int_vector(pair));
+            }
+            Rule::bool => {
+                construct_ab_pairs = match pair.as_str() {
+                    "true" => true,
+                    "false" => false,
+                    _ => unreachable!("unreachable by grammar"),
+                };
+            }
+            Rule::EOI => (),
+            _ => unreachable!("unreachable by grammar but got: {:?}", pair.as_rule()),
         }
-        Ok(Self::new(
-            group.expect("enforced by grammar"),
-            positions,
-            bounds.expect("enforced by grammar"),
-            construct_ab_pairs,
-        ))
     }
+    Ok((
+        group.expect("enforced by grammar"),
+        positions,
+        bounds.expect("enforced by grammar"),
+        construct_ab_pairs,
+    ))
+}
 
-    /// produces a string table of the results
-    pub fn produce_output_string(&self) -> String {
-        let mut string = format!(
-            "{: >20}, {: >20}, {: >20}",
-            "Origin", "Vector", "Multiplicity"
-        );
-        for (a, b, c) in self.expansions.iter().map(PairExpansion::to_string) {
-            string += &format!("\n{: >20}, {: >20}, {: >12}", a, b, c);
-        }
-        string
+/// produces a string table of the results
+pub fn produce_output_string(expansions: &[PairExpansion]) -> String {
+    let mut string = format!(
+        "{: >20}, {: >20}, {: >20}",
+        "Origin", "Vector", "Multiplicity"
+    );
+    for (a, b, c) in expansions.iter().map(PairExpansion::to_string) {
+        string += &format!("\n{: >20}, {: >20}, {: >12}", a, b, c);
     }
+    string
 }
 
 /// retruns true if the pair equal to one of the pairs in the site.
@@ -310,29 +298,3 @@ fn construct_2_site_pairs(
     }
     out
 }
-
-// #[cfg(test)]
-// mod test {
-//     use crate::Frac;
-//
-//     use super::*;
-//
-//     #[test]
-//     fn test() {
-//         let sg = IsometryGroup::from_file("groups/space_groups/P2_12_12_1").unwrap();
-//         println!(
-//             "{}",
-//             PairCollection::new(
-//                 sg,
-//                 vec![
-//                     [0, 0, 0].into(),
-//                     [Frac::new(1, 4), Frac::new(1, 4), 2.into()].into()
-//                 ],
-//                 Bounds3::splat(4),
-//                 true
-//             )
-//             .produce_output_string()
-//         );
-//         panic!()
-//     }
-// }
