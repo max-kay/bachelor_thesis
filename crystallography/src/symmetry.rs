@@ -117,6 +117,9 @@ impl PointGroup {
         if !(counter < 10_000) {
             panic!("didn't manage to close group within 10'000 iterations");
         }
+        if symmetries.is_empty() {
+            symmetries = vec![PointGroupElement::new(Mat3::identity()).unwrap()]
+        }
         Self { symmetries }
     }
 
@@ -371,6 +374,9 @@ impl IsometryGroup {
         }
         if !(counter < 10_000) {
             panic!("didn't manage to close group within 10'000 iterations");
+        }
+        if symmetries.is_empty() {
+            symmetries = vec![Isometry::new(Affine3::identity()).expect("identity is an Isometry")]
         }
         Self { symmetries }
     }

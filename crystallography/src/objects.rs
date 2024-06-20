@@ -1,6 +1,6 @@
 //! This modules contains the structs necessary to represent Wyckoff positions and Pairs
 
-use std::{fs::read_to_string, path::Path, rc::Rc};
+use std::{fs::read_to_string, path::Path};
 
 use anyhow::Result;
 use pest::{iterators::Pairs, Parser};
@@ -13,7 +13,6 @@ use crate::{
 /// this struct represents a collection of sites within the given bounds
 pub struct Site {
     position: Pos3,
-    stabilizer: IsometryGroup,
     orbit: Vec<Pos3>,
 }
 
@@ -32,13 +31,7 @@ impl Site {
                 orbit.push(new_pos)
             }
         }
-        let stabilizer = IsometryGroup::from_closed_symmetries(stabilizer)
-            .expect("the stabilizer group is a subgroup of the space group");
-        Self {
-            position,
-            stabilizer,
-            orbit,
-        }
+        Self { position, orbit }
     }
 
     /// returns how many symmetry related positions there are
@@ -46,19 +39,22 @@ impl Site {
         self.orbit.len()
     }
 
-    /// returns the orbit
-    pub fn get_orbit(&self) -> &[Pos3] {
-        &self.orbit
-    }
-
     /// retruns the orbit as expanded to the bounds
     pub fn orbit_in_bounds<'a>(&'a self, bounds: Bounds3) -> IsometryIter<'a, Pos3> {
         IsometryIter::new(&self.orbit, bounds)
     }
 
-    /// returns the stabilizer
-    pub fn get_stabilizer(&self) -> &IsometryGroup {
-        &self.stabilizer
+    /// returns true if the position in the orbit of the site
+    pub fn contains_pos(&self, position: Pos3) -> bool {
+        self.orbit.contains(&(position % Bounds3::splat(1)))
+    }
+
+    /// produces a reduced representation of the site.
+    pub fn to_reduced_site(&self) -> ReducedSite {
+        ReducedSite {
+            position: self.position,
+            multiplicity: self.multiplicity(),
+        }
     }
 }
 
@@ -70,11 +66,31 @@ impl PartialEq for Site {
 
 impl Eq for Site {}
 
+/// a reduced representation of the site for situations where only position and multiplicity are
+/// required.
+pub struct ReducedSite {
+    position: Pos3,
+    multiplicity: usize,
+}
+
+impl ReducedSite {
+    /// returns the representative position
+    pub fn position(&self) -> Pos3 {
+        self.position
+    }
+
+    /// returns the multiplicity
+    pub fn multiplicity(&self) -> usize {
+        self.multiplicity
+    }
+}
+
 /// a struct representing a pair of symmetry related positions
 pub struct PairExpansion {
-    origin_site: Rc<Site>,
+    origin_site: ReducedSite,
     vec: Vec3,
     expansion: Vec<Pos3>,
+    is_ab_pair: bool,
 }
 
 impl PairExpansion {
@@ -89,13 +105,11 @@ impl PairExpansion {
         }
         return false;
     }
-}
 
-impl PairExpansion {
     /// this function calculates the pair expansion of this pair.
     /// note that the pair must be between symmetry equivalent positions.
     pub fn from_positions(
-        origin_site: Rc<Site>,
+        origin_site: &Site,
         end_position: Pos3,
         group: &IsometryGroup,
         bounds: Bounds3,
@@ -114,7 +128,8 @@ impl PairExpansion {
             }
         }
         Self {
-            origin_site,
+            is_ab_pair: !origin_site.contains_pos(end_position),
+            origin_site: origin_site.to_reduced_site(),
             vec: end_position - origin_position,
             expansion,
         }
@@ -122,7 +137,7 @@ impl PairExpansion {
 
     /// return how many ordered pairs of this type can be formed from positions within a unitcell
     pub fn multiplicity(&self) -> usize {
-        self.origin_site.multiplicity() * self.expansion.len()
+        self.origin_site.multiplicity() * self.expansion.len() * if self.is_ab_pair { 2 } else { 1 }
     }
 
     /// returns an array of three Strings [origin_position, pair vector, multiplicity]
@@ -136,9 +151,9 @@ impl PairExpansion {
 }
 
 /// tests if the position is contained within any of the orbits of the sites given
-fn contains_position(sites: &[Rc<Site>], position: Pos3) -> bool {
+fn contains_position(sites: &[Site], position: Pos3) -> bool {
     for site in sites {
-        if site.orbit.contains(&position) {
+        if site.contains_pos(position) {
             return true;
         }
     }
@@ -153,35 +168,30 @@ pub fn calculate_pairs(
     mut positions: Vec<Pos3>,
     bounds: Bounds3,
     construct_ab_pairs: bool,
-) -> (IsometryGroup, Vec<Rc<Site>>, Vec<PairExpansion>, Bounds3) {
+) -> Vec<PairExpansion> {
     positions
         .iter_mut()
         .for_each(|p| *p = *p % Bounds3::splat(1));
     let mut sites = Vec::new();
     for pos in positions {
         if !contains_position(&sites, pos) {
-            sites.push(Rc::new(Site::new(&group, pos)))
+            sites.push(Site::new(&group, pos))
         }
     }
     let mut expansions = Vec::new();
 
     for site in &sites {
-        expansions.append(&mut construct_site_pairs(site.clone(), bounds, &group));
+        expansions.append(&mut construct_site_pairs(site, site, bounds, &group));
     }
 
     if construct_ab_pairs {
         for (i, site_1) in sites.iter().enumerate() {
             for site_2 in &sites[i + 1..] {
-                expansions.append(&mut construct_2_site_pairs(
-                    Rc::clone(site_1),
-                    Rc::clone(site_2),
-                    bounds,
-                    &group,
-                ))
+                expansions.append(&mut construct_site_pairs(site_1, site_2, bounds, &group))
             }
         }
     }
-    (group, sites, expansions, bounds)
+    expansions
 }
 
 /// parses the file into the arguments for calculate pairs
@@ -236,7 +246,7 @@ pub fn tree_to_args(mut pairs: Pairs<Rule>) -> Result<(IsometryGroup, Vec<Pos3>,
 /// produces a string table of the results
 pub fn produce_output_string(expansions: &[PairExpansion]) -> String {
     let mut string = format!(
-        "{: >20}, {: >20}, {: >20}",
+        "{: >20}, {: >20}, {: >12}",
         "Origin", "Vector", "Multiplicity"
     );
     for (a, b, c) in expansions.iter().map(PairExpansion::to_string) {
@@ -255,32 +265,11 @@ fn contains_pair(expansions: &[PairExpansion], origin_position: Pos3, end_positi
     return false;
 }
 
-/// constructs all pair which can be formed from pairs of positions in this site within the given
-/// bounds
-fn construct_site_pairs(
-    site: Rc<Site>,
-    bounds: Bounds3,
-    group: &IsometryGroup,
-) -> Vec<PairExpansion> {
-    let mut out = Vec::new();
-    for pos in site.orbit_in_bounds(bounds) {
-        if !contains_pair(&out, site.position, pos) {
-            out.push(PairExpansion::from_positions(
-                Rc::clone(&site),
-                pos,
-                group,
-                bounds,
-            ))
-        }
-    }
-    out
-}
-
 /// constructs all pairs which have their origin at site_1 and their end point at one of the
 /// positions of site_2
-fn construct_2_site_pairs(
-    site_1: Rc<Site>,
-    site_2: Rc<Site>,
+fn construct_site_pairs(
+    site_1: &Site,
+    site_2: &Site,
     bounds: Bounds3,
     group: &IsometryGroup,
 ) -> Vec<PairExpansion> {
@@ -288,12 +277,7 @@ fn construct_2_site_pairs(
     let origin_position = site_1.position;
     for pos in site_2.orbit_in_bounds(bounds) {
         if !contains_pair(&out, origin_position, pos) {
-            out.push(PairExpansion::from_positions(
-                site_1.clone(),
-                pos,
-                group,
-                bounds,
-            ))
+            out.push(PairExpansion::from_positions(site_1, pos, group, bounds))
         }
     }
     out

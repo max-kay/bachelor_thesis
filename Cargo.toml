@@ -2,3 +2,6 @@
 resolver = "2"
 
 members = [ "find-pairs", "crystallography" , "website"]
+
+[profile.release]
+debug = true
