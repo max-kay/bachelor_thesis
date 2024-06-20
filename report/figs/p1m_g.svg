@@ -78,18 +78,18 @@
 </g>
 <g>
 <path d="M422.5,17.5 L452.5,17.5" fill="none" stroke="#28bfcc" stroke-width="1.0" stroke-dasharray="5 1 1 1" />
-<text x="462.5" y="17.5" font-size="10" fill="black" dominant-baseline="middle">1</text>
+<text x="462.5" y="17.5" font-size="10" fill="black" dominant-baseline="middle">2</text>
 <path d="M422.5,32.5 L452.5,32.5" fill="none" stroke="#cc2828" stroke-width="1.0" stroke-dasharray="none" />
-<text x="462.5" y="32.5" font-size="10" fill="black" dominant-baseline="middle">2</text>
+<text x="462.5" y="32.5" font-size="10" fill="black" dominant-baseline="middle">4</text>
 <path d="M422.5,47.5 L452.5,47.5" fill="none" stroke="#74cc28" stroke-width="1.0" stroke-dasharray="none" />
-<text x="462.5" y="47.5" font-size="10" fill="black" dominant-baseline="middle">2</text>
+<text x="462.5" y="47.5" font-size="10" fill="black" dominant-baseline="middle">4</text>
 <path d="M422.5,62.5 L452.5,62.5" fill="none" stroke="#cc2828" stroke-width="1.0" stroke-dasharray="5 1" />
-<text x="462.5" y="62.5" font-size="10" fill="black" dominant-baseline="middle">1</text>
+<text x="462.5" y="62.5" font-size="10" fill="black" dominant-baseline="middle">2</text>
 <path d="M422.5,77.5 L452.5,77.5" fill="none" stroke="#74cc28" stroke-width="1.0" stroke-dasharray="5 1" />
-<text x="462.5" y="77.5" font-size="10" fill="black" dominant-baseline="middle">1</text>
+<text x="462.5" y="77.5" font-size="10" fill="black" dominant-baseline="middle">2</text>
 <path d="M422.5,92.5 L452.5,92.5" fill="none" stroke="#28bfcc" stroke-width="1.0" stroke-dasharray="5 1" />
-<text x="462.5" y="92.5" font-size="10" fill="black" dominant-baseline="middle">1</text>
+<text x="462.5" y="92.5" font-size="10" fill="black" dominant-baseline="middle">2</text>
 <path d="M422.5,107.5 L452.5,107.5" fill="none" stroke="#8e28cc" stroke-width="1.0" stroke-dasharray="5 1" />
-<text x="462.5" y="107.5" font-size="10" fill="black" dominant-baseline="middle">1</text>
+<text x="462.5" y="107.5" font-size="10" fill="black" dominant-baseline="middle">2</text>
 </g>
 </svg>

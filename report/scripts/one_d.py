@@ -175,7 +175,7 @@ def p1m_g_example():
         }
 
         if i > 0:
-            legend.append((variant, 2))
+            legend.append((variant, 4))
         if i == 0:
             continue
         img.append(
@@ -193,7 +193,7 @@ def p1m_g_example():
             "color": SATURATED_COLORS[i],
             "dashes": DASHES[1],
         }
-        legend.append((variant, 1))
+        legend.append((variant, 2))
         x = xs[origin_idx - 3 + 2 * i]
         img.append(
             connection(
@@ -206,7 +206,7 @@ def p1m_g_example():
         )
 
     img.append(ouroboros(origin, HEIGHT / 2, angle=0, **ARROW_VARIANTS[12]))
-    legend = [(ARROW_VARIANTS[12], 1)] + legend
+    legend = [(ARROW_VARIANTS[12], 2)] + legend
 
     img.append(
         make_legend(

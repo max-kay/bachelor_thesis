@@ -173,8 +173,8 @@ def p2mg():
 
     img.append(ouroboros(x_0, y_0, **ARROW_VARIANTS[0]))
 
-    legend = [(ARROW_VARIANTS[i], 2) for i in range(1, 5)]
-    legend = [(ARROW_VARIANTS[0], 1)] + legend
+    legend = [(ARROW_VARIANTS[i], 4) for i in range(1, 5)]
+    legend = [(ARROW_VARIANTS[0], 2)] + legend
 
     img.append(make_legend(HEIGHT / 2, WIDTH - X_MARGIN - LEGEND_WIDTH, legend))
 
