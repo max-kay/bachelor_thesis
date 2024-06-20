@@ -5,18 +5,21 @@ from utils import (
     ARROW_VARIANTS,
     DASHES,
     DESATURATED_COLORS,
+    LEGEND_MARGIN,
+    LEGEND_WIDTH,
     MAIN_COLOR,
     MAIN_STROKE_WIDTH,
     SATURATED_COLORS,
     WIDTH,
     arc_arrow,
+    make_legend,
     make_regular_polygon,
     ouroboros,
 )
 
 UNITCELLS = 7
 HEIGHT = WIDTH / 4
-CELL_LENGTH = WIDTH / (UNITCELLS + 1)
+CELL_LENGTH = (WIDTH - LEGEND_WIDTH - LEGEND_MARGIN) / (UNITCELLS + 1)
 MARGIN = CELL_LENGTH / 2
 TICK_HEIGHT = 40
 OBJ_RADIUS = 10
@@ -29,7 +32,7 @@ def get_base() -> draw.Drawing:
         draw.Line(
             MARGIN,
             HEIGHT / 2,
-            WIDTH - MARGIN,
+            MARGIN + UNITCELLS * CELL_LENGTH,
             HEIGHT / 2,
             stroke=MAIN_COLOR,
             stroke_width=MAIN_STROKE_WIDTH,
@@ -133,7 +136,18 @@ def p1_example():
                 **ARROW_VARIANTS[arrow_variant],
             )
         )
-    img.append(ouroboros(origin, HEIGHT / 2))
+    legend = [(ARROW_VARIANTS[i], 2) for i in range(0, 3)]
+
+    img.append(ouroboros(origin, HEIGHT / 2, angle=0, **ARROW_VARIANTS[6]))
+    legend = [(ARROW_VARIANTS[6], 1)] + legend
+
+    img.append(
+        make_legend(
+            HEIGHT / 2,
+            WIDTH - MARGIN - LEGEND_WIDTH,
+            legend,
+        )
+    )
     img.save_svg("figs/p1.svg")
 
 
@@ -151,8 +165,17 @@ def p1m_g_example():
     origin_idx = len(xs) // 2
     origin = xs[origin_idx]
 
+    legend = []
+
     # integer translations
     for i in range(-2, 2 + 1):
+        variant = {
+            "color": SATURATED_COLORS[abs(i) - 1],
+            "dashes": DASHES[0],
+        }
+
+        if i > 0:
+            legend.append((variant, 2))
         if i == 0:
             continue
         img.append(
@@ -161,12 +184,16 @@ def p1m_g_example():
                 xs[origin_idx + 2 * i],
                 abs(3 * i),
                 False,
-                color=SATURATED_COLORS[abs(i) - 1],
-                dashes=DASHES[0],
+                **variant,
             )
         )
     # non integer translations
     for i, offset in enumerate([3, 1, 2, 4]):
+        variant = {
+            "color": SATURATED_COLORS[i],
+            "dashes": DASHES[1],
+        }
+        legend.append((variant, 1))
         x = xs[origin_idx - 3 + 2 * i]
         img.append(
             connection(
@@ -174,10 +201,20 @@ def p1m_g_example():
                 x,
                 offset * 2,
                 True,
-                color=SATURATED_COLORS[i],
-                dashes=DASHES[1],
+                **variant,
             )
         )
+
+    img.append(ouroboros(origin, HEIGHT / 2, angle=0, **ARROW_VARIANTS[12]))
+    legend = [(ARROW_VARIANTS[12], 1)] + legend
+
+    img.append(
+        make_legend(
+            HEIGHT / 2,
+            WIDTH - MARGIN - LEGEND_WIDTH,
+            legend,
+        )
+    )
 
     img.save_svg("figs/p1m_g.svg")
 
@@ -189,8 +226,11 @@ def p1m_s_example():
         x = MARGIN + MIRROR_OFFSET + CELL_LENGTH * i
         xs.append(x)
         img.append(diamond(x, HEIGHT / 2, fill="red"))
+
+    legend = []
     origin = xs[len(xs) // 2]
     for i in range(1, 3):
+        legend.append((ARROW_VARIANTS[i - 1], 2))
         img.append(
             connection(
                 origin,
@@ -209,4 +249,15 @@ def p1m_s_example():
                 **ARROW_VARIANTS[i - 1],
             )
         )
+
+    img.append(ouroboros(origin, HEIGHT / 2, angle=0, **ARROW_VARIANTS[12]))
+    legend = [(ARROW_VARIANTS[12], 1)] + legend
+
+    img.append(
+        make_legend(
+            HEIGHT / 2,
+            WIDTH - MARGIN - LEGEND_WIDTH,
+            legend,
+        )
+    )
     img.save_svg("figs/p1m_s.svg")

@@ -4,12 +4,15 @@ import drawsvg as draw
 from utils import (
     ARROW_VARIANTS,
     DESATURATED_COLORS,
+    LEGEND_MARGIN,
+    LEGEND_WIDTH,
     MAIN_COLOR,
     MAIN_STROKE_WIDTH,
     MIRROR_DASHES,
     WIDTH,
     arc_arrow,
     arrow,
+    make_legend,
     make_regular_polygon,
     ouroboros,
 )
@@ -21,7 +24,7 @@ Y_MARGIN = HEIGHT / 16
 UNITCELLS = 3
 OBJ_RADIUS = 12
 
-A_LEN = (WIDTH - 2 * X_MARGIN) / UNITCELLS
+A_LEN = (WIDTH - 2 * X_MARGIN - LEGEND_WIDTH - LEGEND_MARGIN) / UNITCELLS
 B_LEN = (HEIGHT - 2 * Y_MARGIN) / UNITCELLS
 
 
@@ -45,7 +48,7 @@ def get_base() -> draw.Drawing:
             draw.Line(
                 X_MARGIN,
                 Y_MARGIN + i * B_LEN,
-                WIDTH - X_MARGIN,
+                WIDTH - X_MARGIN - LEGEND_WIDTH - LEGEND_MARGIN,
                 Y_MARGIN + i * B_LEN,
                 stroke=MAIN_COLOR,
                 stroke_width=MAIN_STROKE_WIDTH / 2,
@@ -70,7 +73,7 @@ def get_base() -> draw.Drawing:
             draw.Line(
                 X_MARGIN,
                 Y_MARGIN + i * B_LEN / 2 + B_LEN / 4,
-                WIDTH - X_MARGIN,
+                WIDTH - X_MARGIN - LEGEND_WIDTH - LEGEND_MARGIN,
                 Y_MARGIN + i * B_LEN / 2 + B_LEN / 4,
                 stroke=DESATURATED_COLORS[1],
                 stroke_width=MAIN_STROKE_WIDTH,
@@ -118,6 +121,7 @@ def p2mg():
                     fill="red",
                 )
             )
+
     x_0 = X_MARGIN + A_LEN + x_offset
     y_0 = Y_MARGIN + B_LEN + y_offset
 
@@ -167,6 +171,11 @@ def p2mg():
     img.append(arrow(x_0, y_0, x_0, y_0 + B_LEN, **ARROW_VARIANTS[4]))
     img.append(arrow(x_0, y_0, x_0, y_0 - B_LEN, **ARROW_VARIANTS[4]))
 
-    img.append(ouroboros(x_0, y_0))
+    img.append(ouroboros(x_0, y_0, **ARROW_VARIANTS[0]))
+
+    legend = [(ARROW_VARIANTS[i], 2) for i in range(1, 5)]
+    legend = [(ARROW_VARIANTS[0], 1)] + legend
+
+    img.append(make_legend(HEIGHT / 2, WIDTH - X_MARGIN - LEGEND_WIDTH, legend))
 
     img.save_svg("figs/p2mg.svg")

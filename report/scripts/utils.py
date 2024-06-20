@@ -2,10 +2,12 @@ import math
 from colorsys import hsv_to_rgb
 
 import drawsvg as draw
+import numpy as np
 
+FONT_SIZE = 10
 WIDTH = 500
 MAIN_STROKE_WIDTH = 2
-ARROW_HEAD_FACTOR = 4
+ARROW_HEAD_FACTOR = 5
 MIRROR_DASHES = "2 2"
 
 MAIN_COLOR = "black"
@@ -37,6 +39,9 @@ ARROW_VARIANTS = []
 for d in DASHES:
     for c in SATURATED_COLORS:
         ARROW_VARIANTS.append({"color": c, "dashes": d})
+
+LEGEND_WIDTH = 50
+LEGEND_MARGIN = 10
 
 
 def arrow(
@@ -75,42 +80,6 @@ def arrow(
         fill=color,
     )
     group.append(triangle)
-    return group
-
-
-def ouroboros(
-    x: float,
-    y: float,
-    color: str = MAIN_COLOR,
-    dashes="none",
-    angle: float = 0,
-    width: float = MAIN_STROKE_WIDTH / 2,
-) -> draw.Group:
-    gap_angle = math.pi / 5
-    radius = (
-        width
-        * ARROW_HEAD_FACTOR
-        * 3
-        / 2
-        * (math.cos(gap_angle) / (1 - math.cos(gap_angle)))
-    )
-    group = draw.Group()
-    center_offset = to_cartesian(-radius, angle)
-
-    path = draw.Path(
-        fill="none", stroke=color, stroke_width=width, stroke_dasharray=dashes
-    )
-
-    path.arc(
-        x + center_offset[0],
-        y + center_offset[1],
-        radius,
-        angle + math.pi,
-        -angle - math.pi,
-        include_m=True,
-    )
-    path.args["stroke"] = color
-    group.append(path)
     return group
 
 
@@ -166,6 +135,50 @@ def arc_arrow(
     return group
 
 
+def ouroboros(
+    x: float,
+    y: float,
+    color: str = MAIN_COLOR,
+    dashes="none",
+    angle: float = 0,
+    width: float = MAIN_STROKE_WIDTH / 2,
+) -> draw.Group:
+    gap_angle = math.pi / 8
+    radius = width * ARROW_HEAD_FACTOR * 3 / 2 / math.tan(gap_angle)
+    pos = np.array([x, y])
+    start_offset = np.array(
+        to_cartesian(width * ARROW_HEAD_FACTOR * 3 / 2, angle + math.pi / 2 - gap_angle)
+    )
+    end_offset = np.array(
+        to_cartesian(width * ARROW_HEAD_FACTOR * 3 / 2, angle - math.pi / 2 + gap_angle)
+    )
+    start = pos - start_offset
+    end = pos - end_offset
+
+    group = draw.Group()
+
+    path = draw.Path(
+        fill="none", stroke=color, stroke_width=width, stroke_dasharray=dashes
+    )
+    path.M(start[0], start[1])
+    path.A(radius, radius, 0, True, False, end[0], end[1])
+    group.append(path)
+
+    triangle_center = pos - to_cartesian(
+        width * ARROW_HEAD_FACTOR, angle - math.pi / 2 + gap_angle
+    )
+    triangle = make_regular_polygon(
+        triangle_center[0],
+        triangle_center[1],
+        3,
+        width * ARROW_HEAD_FACTOR,
+        theta_0=angle - math.pi / 2 + gap_angle,
+        fill=color,
+    )
+    group.append(triangle)
+    return group
+
+
 def to_cartesian(r: float, theta: float) -> tuple[float, float]:
     return (r * math.cos(theta), r * math.sin(theta))
 
@@ -180,3 +193,37 @@ def make_regular_polygon(
         p = to_cartesian(radius, theta_0 + 2 * math.pi * (i / n))
         path.L(x + p[0], y + p[1])
     return path
+
+
+def make_legend(
+    h_center: float,
+    left: float,
+    legend: list[tuple[dict, int]],
+) -> draw.Group:
+    top = h_center - (len(legend) - 1) * FONT_SIZE * 1.5 / 2
+    group = draw.Group()
+    line_start = left
+    line_end = left + 30
+    text_start = left + 40
+    for i, (variant, num) in enumerate(legend):
+        center_y = top + i * FONT_SIZE * 1.5
+        path = draw.Path(
+            fill="none",
+            stroke=variant["color"],
+            stroke_width=MAIN_STROKE_WIDTH / 2,
+            stroke_dasharray=variant["dashes"],
+        )
+        path.M(line_start, center_y)
+        path.L(line_end, center_y)
+        group.append(path)
+
+        text = draw.Text(
+            fill="black",
+            font_size=FONT_SIZE,
+            text=f"{num}",
+            dominant_baseline="middle",
+            x=text_start,
+            y=center_y,
+        )
+        group.append(text)
+    return group

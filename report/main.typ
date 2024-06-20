@@ -38,7 +38,7 @@
 )[
     Bachelor thesis #datetime.today().display("[day].[month].[year]")\
     Draft\
-    BSc material science and engineering, ETH Zürich\
+    B.Sc. material science and engineering, ETH Zürich\
     supervised by Arkadiy Simonov
   ]
 #pagebreak()
@@ -48,7 +48,7 @@
 )[
   #set par(justify: false)
   *Abstract* \
-  Pairs of symmetry related sites in crystals are important for many applications, for example the 3d #sym.Delta\ PDF,
+  Pairs of symmetry related sites in crystals are important for many applications, for example the 3D#sym.Delta\ PDF,
   which is used to determine the structure of disordered crystals.
   In this work, a program to determine the multiplicity of such pairs was developed.
   This work explains the mathematics behind crystals, special sites in crystals and pairs of symmetry equivalent positions.
@@ -121,7 +121,9 @@ This function is called the difference pair distribution function #sym.Delta PDF
 
 The PDF and #sym.Delta PDF can be calculated from measurements from powder diffraction. This, however, leads to a loss of information because 
 powder diffraction inherently averages the measurement radially.
-...
+
+The 3D -#sym.Delta PDF need to be measured from more complicated single crystal experiments using scaning techniques, but allow more 
+information to be gained from the data analysis.
 
 The #sym.Delta PDF can be used by programs like Yell to find the local correlations of structure.
 This is where the main work of the program comes in. The program Yell needs to be given the multiplicity of pairs in a crystal to properly expand
@@ -155,6 +157,9 @@ This vector is called the position vector.
 Thus, we can assign a coordinate triple to a point $P$ based on the position vector $arrow(O P)$. 
 Note that to specify a basis for an affine space, a basis for the associated vector space and an origin need to be specified.
 
+In the context of crystallography points are usually refered to as positions. This is reflected in the following section and the naming of types
+in the program.
+
 A general linear transformation of a point $X$ can then be described by a linear transformation of the position vector plus a translation.
 
 Following the convention used by the International Table for Crystallography, the transformation will be notated in the following way:
@@ -170,19 +175,19 @@ The scalar product is defined on the vector space with the usual axioms for the 
 The coordinates of the affine space are called Cartesian, if the coefficients of the associated vector space are given in an orthonormal basis.
 In this case, the scalar product is the dot product.
 
-If the coordinates are not Cartesian the scalar product is given by:
+If the coordinates are not Cartesian, the scalar product is given by:
 $ innerproduct(bold(v), bold(w)) = bold(v)^T bold(G) bold(w) $
 Where G is a symmetric 3 by 3 matrix known as the metric tensor.
 The norm is naturally induced by the scalar product $norm(bold(v)) = sqrt(innerproduct(bold(v), bold(v)))$
 and distances between points $P, Q$ can be measured by taking the norm of the translation vector between them $d(P, Q) = norm(arrow(P Q))$.
 
 == Crystals Structures <crystals>
-In crystallography a crystal structure is an ordered structure which fulfills three linearly independent translation symmetries
+In crystallography, a crystal structure is an ordered structure which fulfills three linearly independent translation symmetries
 $bold(t)_1, bold(t)_2, bold(t)_3 in RR^3$.
 
 The basis for the vector space can then be given in terms of these vectors. However, in crystallography the basis is sometimes given in terms of
 combinations of these vectors for an easier description of symmetries in the crystal structure.
-Since we do not care about orientation of the space we can give the basis in terms of the length of the basis vectors $a, b, c$ and
+Since we aren't concerned about the orientation of the space we can give the basis in terms of the length of the basis vectors $a, b, c$ and
 the angles between them $alpha, beta, gamma$ known as fractional coordinates.
 
 The metric tensor $G$ can be calculated from these values in the following way:
@@ -201,7 +206,7 @@ $
 
 === Isometries <isometries>
 Isometries are distance and angle preserving transformations on a collection of points and can be represented by an affine transformation.
-For an affine transformation to be an isometry, the following statement must hold for all $a, b in P$:
+For an affine transformation to be an isometry, the following statement must hold for all $X, Y in P$:
 $
 d(X, Y) &= d(cal(Q)X, cal(Q)Y)\
 norm(accent(X Y, arrow)) &= norm(accent(cal(Q)X cal(Q)Y, arrow))\
@@ -210,9 +215,9 @@ norm(accent(X Y, arrow)) &= norm(accent(cal(Q)X cal(Q)Y, arrow))\
 &= norm(bold(Q) accent(X Y, arrow))
 $
 
-As expected, the translation vector $q$ is free as a translation doesn't affect the distances between points.
+As expected, the translation vector $bold(q)$ is free, as a translation doesn't affect the distances between points.
 
-Since X and Y are arbitrary points, so is the vector $v$ between them.
+Since X and Y are arbitrary points, so is the vector $arrow(v)$ between them.
 Using the definition of the metric:
 $
 norm(bold(v)) &= norm(bold(Q v))\
@@ -234,13 +239,13 @@ det(bold(G)) = det(bold(Q)^T bold(G) bold(Q)) = det(bold(Q)^T) det(bold(G)) det(
 $
 
 In addition to the orthogonality condition, we also know that the matrix $bold(Q)$ must map integer vectors to integer vectors.
-In fact, for all space groups a representation using only matrices from ${-1, 0, 1}^3$ can be found.
+In fact, for all space groups a representation using only matrices from ${-1, 0, 1}^(3 times 3)$ can be found.
 
 For applications in computation, it is necessary to find a finite representation of space groups.
 One such representation can be found in what will be referred to as the normalized space group of $frak(G)$ denoted $tilde(frak(G))$.
 It is defined as the quotient group of $frak(tilde(G))=frak(G) slash frak(T)$ where $frak(T) = {(bold(I), bold(v))| v in ZZ^3}$ is 
 the group generated by translations along the basis vectors.
-In the same fashion the quotient vector space $tilde(arrow(A)) = arrow(A) slash {vec(x, y, z) | x, y, z in ZZ}$
+In the same fashion, the quotient vector space $tilde(arrow(A)) = arrow(A) slash {vec(x, y, z) | x, y, z in ZZ}$
 and the quotient point space $tilde(A) = A slash {vec(x, y, z) | x, y, z in ZZ}$ is defined.
 The order of a space group is defined in such terms.
 
@@ -250,7 +255,7 @@ In simple terms, Wyckoff positions describe how many times a site occurs in a un
 
 Mathematically, a Wyckoff position can be described by an orbit and a stabilizer.
 An orbit $O_frak(G)(P) = {cal(G) P | cal(G) in frak(G)}$  is the set of points which the point $P$ is mapped to by elements of the group $frak(G)$.
-The stabilizer $S_frak(G)(P) = {cal(G) | cal(G) P = P | cal(G) in frak(G)}$ is the subgroup of $frak(G)$ for which the point $P$.
+The stabilizer $S_frak(G)(P) = {cal(G) | cal(G) P = P, cal(G) in frak(G)}$ is the subgroup of $frak(G)$ for which the point $P$.
 Wyckoff sites are commonly given in terms of their position in the unit cell.
 Thus, the normalized space group must be used to determine their multiplicity.
 
@@ -280,7 +285,7 @@ By definition, any element of the stabilizer of $P$ does not change the point $P
 == One-dimensional Examples <examples1>
 In the one-dimensional case, there are only two space groups. 
 
-=== Line group p1 <examples1.1>
+=== Line Group p1 <examples1.1>
 #figure(
   image("figs/p1.svg"),
   caption: [Pairs in line group p1],
@@ -291,10 +296,11 @@ Figure @p1 shows how, starting from one position, there are two possibilities to
 Thus, the multiplicity of such any pair is 2. Per unit cell, there is one starting position $bold(p)$ 
 with the paired position at $bold(p') = bold(p) + n arrow(l)$.
 
-=== Line group p1m <examples1.2>
-In p1m additionaly to the translations by multiples of the lattice $arrow(l)$ there are mirror operations which mirror the line at positions $bold(m) + n arrow(l)$. This group is isomorphic to the direct product $(ZZ, +) times ({-1, 1}, dot)$.
+=== Line Group p1m <examples1.2>
+In p1m additional to the translations by multiples of the lattice $arrow(l)$ there are mirror operations which mirror the line at positions $bold(m) + n arrow(l)$. This group is isomorphic to the direct product $(ZZ, +) times ({-1, 1}, dot)$.
 In p1m there are two Wyckoff positions.
-The general positions with Wyckoff multiplicity 2, in other words it exists twice per unit cell, and the special positions at $bold(m)$ and $bold(m) + 1/2 arrow(l)$, which have Wyckoff multiplicity 1 and a site symmetry m.
+The general positions with Wyckoff multiplicity 2, in other words it exists twice per unit cell,
+and the special positions at $bold(m)$ and $bold(m) + 1/2 arrow(l)$, which have Wyckoff multiplicity 1 and the site symmetry m.
 Here the calculation of the pair multiplicity must be treated differently for origins at general and special positions.
 
 #figure(
@@ -323,18 +329,26 @@ As a next example, consider pairs of positions on the mirror axis of the wallpap
 The coordinates of such a point are ($x, 1/4$) with its symmetry equivalent point at ($1-x, 3/4$).
 
 == Three-dimensional Example <examples3>
-In three dimensions, the 
-// TODO
+The three-dimensional examples shown in figure @fig3d are pair expansions from the site $[0,0,0]$ in a primitive cubic structure with the corresponding
+space group Pm3\u{0305}m. As three-dimensional structures are harder to visualize, no more complicated examples are shown here.
+#figure(
+  image("figs/p2mg.svg"),
+  caption: [still TODO],
+)<fig3d>
+
+Since there is only one $[0, 0, 0]$ position in a primitive centered cell, the $[0, 0, 0]$ pair has multiplicity one.
+The $[1, 0, 0]$ pairs have a pair multiplicity of 6, the $[1, 1, 0]$ pairs have a multiplicity of 12 and the $[1, 1, 1]$ pairs have a multiplicity of 8.
+Note the correspondence between these pair of multiplicities and the number of faces, edges, and vertices of a cube.
 
 
 
-= Program <program>
-The following section present the implementation of the objects described above.
-The code examples are written in Rust-like pseudo language, which ignore Rust borrow checker to simplify the code.
+= The Program <program>
+The following section presents the implementation of the objects described in section @math.
+The code examples are written in Rust-like pseudo language, which ignores Rust borrow checker to simplify the code.
 Additionally, the code of the project includes some additional structs and steps in the algorithms to allow for more performant code.
 The code can be found on GitHub #link("https://github.com/max-kay/bachelor_thesis")[github.com/max-kay/bachelor_thesis].
 
-== Affine space implementation <affine_impl>
+== Affine Space Implementation <affine_impl>
 All coordinates used in the program are rational numbers implemented as a pair of `i32`, which are always represented in reduced form and positive denominator. Rational numbers were chosen instead of floating-point numbers to allow for exact calculations and comparisons of coordinates.
 From triplets of rational numbers, vectors `Vec3` and positions `Pos3` and operations needed for them to form an affine space were defined.
 
@@ -350,11 +364,12 @@ For vectors `Vec3` the operation `Vec3(x', y', z') = Vec3(x, y, z) % Bounds3(a, 
 The different implementation of the remainder for `Vec3` allows vectors to be represented by the shortest vector in the equivalence class. 
 The remainder operation was defined on affine transformations `Affine3` too. Here the operation leaves the matrix untouched but takes the remainder of the associated vector.
 
-== Space group implementation <space_group_impl>
+== Space Group Implementation <space_group_impl>
 The space group is represented as the normalized space group, where all operations take place modulo `Bounds3(1, 1, 1)`.
 Using this representation, there is a finite list of symmetry operations and
 all other symmetries can be easily generated by the multiplication of integer translation with the operations already present.
 The space group can be constructed from a list of generators by the following simple algorithm.
+
 ```rust
 fn isometry_group_new(generators) -> IsometryGroup {
   bounds = Bounds3(1, 1, 1);
@@ -396,19 +411,19 @@ As a safety precaution, an upper limit of 10000 iterations was placed on the out
 
 The struct `IsometryGroup` contains the method `symmetries_in_bounds` which produces all symmetries within the bounds provided.
 
-== Wyckoff positions <positions_impl>
+== Wyckoff Positions <positions_impl>
 
-For a position in the unit cell, the Wyckoff position can be calculated from the starting position `pos` and the symmetry operations `symmetries` by the following process.
+For a position in the unit cell, the Wyckoff position can be calculated from the starting position `position` and the space group `group` by the following process.
 
 ```rust
-fn site_new(pos, group) -> Site {
+fn site_new(position, group) -> Site {
   bounds = Bounds3(1, 1, 1);
   position = position % bounds;
-  orbit = [pos];
+  orbit = [position];
 
   for sym in symmetries {
-    new_pos = sym * pos % bounds;
-    if new_pos == pos {
+    new_pos = sym * position % bounds;
+    if new_pos == position {
       stabilizer.push(sym);
     } else if new_pos not in orbit {
       orbit.push(new_pos);
@@ -425,10 +440,11 @@ A struct called `Site` is used to collect the starting position, the orbit and t
 The struct `Site` contains the method `orbit_in_bounds` which produces the orbit within the bounds provided.
 
 == Pair Expansion Implementation <pairs_impl>
-In the implementation exists a struct called `Pair` which is used to store the information about a pair.
-Its constructor takes the starting position, the vector associated with the pair and the isometry group.
+The constructor for `Expansion` takes the starting position, the vector associated with the pair and the isometry group.
 After translating the starting position into the unit cell. The `Site` is constructed from the starting position and the space group.
 The pair vector is added to the starting position and the resulting position is checked against the orbit of the `Site`.
+
+
 Then the following algorithm is applied to the pair to determine its expansion:
 
 ```rust
@@ -457,8 +473,10 @@ fn expansion_new(origin_site, end_position, group, bounds) -> Expansion {
 ```
 This algorithm applies each operation to the starting and end position of the pair and then checks either one of the positions was mapped to the
 original starting position, if so, it appends the other position to the expansion.
+Subsequently the end position is tested against the origin_site to see if the pair is a single site or mixed site pair.
 
-The pair multiplicity now can be calculated by multiplying the length of the expansion and the length of the orbit of the pairs.
+The pair multiplicity now can now be calculated by multiplying the length of the expansion with the length of the orbit of the pairs and 
+with an additional factor of 2 for mixed pairs, as each pair can be constructed from either of the two sites.
 
 == Pair Calculation <main_algo>
 As arguments, the program takes a space group, the positions from which the pairs need to generated, the bounds applied to the problem and optionally
@@ -530,7 +548,7 @@ This has consequences for the pair multiplicities.
 
 As an example, consider the pair with vector `[2, 0, 0]`. In an infinite crystal, the pair with vector
 `[-2, 0, 0]` can always be constructed from this pair. But in the bounds `Bounds3(4, 4, 4)` these vectors are considered equivalent.
-Thus, the pairs multiplicities constructed in bounds are different from those in an infinite crystal.
+Thus, the pairs multiplicities constructed in bounds, are different from those in an infinite crystal.
 For the main application of this program for the correlation fitting program Yell, this is an advantage. As Yell works with similar bounds and needs
 the pair multiplicities calculated in bounds.
 
@@ -543,7 +561,7 @@ allowing for easy changing of the grammar.
 An example file is shown below:
 
 #let text = read("../files/input/commented_example")
-#raw(text)
+#raw(text, block: true, lang: "rust")
 
 The input file can be divided into four sections.
 
@@ -561,6 +579,22 @@ Here, the coefficients need to be positive integers.
 The `Mixed Pairs` section is optional and can only contain `true` or `false`. This boolean specifies if mixed pairs should be calculated.
 If this section is not specified, it defaults to `false`.
 
+
+= Conclusion
+
+A program to calculate the pair multiplicities was successfully developed. To this end, positions and vectors from a three-dimensional affine space,
+as well as transformations on them were implemented.
+Furthermore, algorithms to calculate Wyckoff positions and pair expansions were developed and implemented.
+These implementations were used to create a program to construct all possible pairs of positions in any bounded space group.
+Additionally, the pair multiplicities were explained using one-, two- and three-dimensional examples.
+
+The code for this project (including the code for this report and the slides for the talk)
+can be found in a GitHub repository #link("https://github.com/max-kay/bachelor_thesis")[github.com/max-kay/bachelor_thesis].
+The program can be used in two ways.
+Either it is used as a command line tool. Please follow the instructions in the `README.md` on GitHub to build the tool from source.
+Or in a simple website, hosted through GitHub Pages #link("https://max-kay.github.io/bachelor_thesis/")[max-kay.github.io/bachelor_thesis].
+
+#bibliography("ref.bib")
 
 
 = Appendix
@@ -610,4 +644,3 @@ $
 To be a valid space group, $bold(H)$ must map integer vector to integer vector. Thus, $cal(H)cal(T)cal(H)^(-1) = (bold(I), bold(H)bold(t))$
 is an element of $frak(T)$. qed
 
-#bibliography("ref.bib")
