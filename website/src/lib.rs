@@ -21,7 +21,7 @@ pub fn process_input(string: &str) -> String {
             Ok(args) => args,
             Err(err) => return format!("There was an error during parsing:\n {}", err),
         };
-    let (_, _, expansions, _) =
+    let expansions =
         crystallography::objects::calculate_pairs(group, positions, bounds, construct_ab_pairs);
     convert_string_for_wasm(crystallography::objects::produce_output_string(&expansions))
 }
