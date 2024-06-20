@@ -83,39 +83,34 @@ def ouroboros(
     y: float,
     color: str = MAIN_COLOR,
     dashes="none",
-    angle: float = 0.0,
+    angle: float = 0,
     width: float = MAIN_STROKE_WIDTH / 2,
 ) -> draw.Group:
-    start_offset = to_cartesian(width * ARROW_HEAD_FACTOR, angle + math.pi / 4)
-    end_offset = to_cartesian(width * ARROW_HEAD_FACTOR * 3 / 2, angle - math.pi / 4)
+    gap_angle = math.pi / 5
+    radius = (
+        width
+        * ARROW_HEAD_FACTOR
+        * 3
+        / 2
+        * (math.cos(gap_angle) / (1 - math.cos(gap_angle)))
+    )
     group = draw.Group()
+    center_offset = to_cartesian(-radius, angle)
 
     path = draw.Path(
         fill="none", stroke=color, stroke_width=width, stroke_dasharray=dashes
     )
 
-    path.M(x - start_offset[0], y - start_offset[1])
-    c1 = to_cartesian(width * ARROW_HEAD_FACTOR * 6, angle + math.pi / 4)
-    c2 = to_cartesian(width * ARROW_HEAD_FACTOR * 6, angle - math.pi / 4)
-    path.c(
-        -c1[0],
-        -c1[1],
-        -c2[0],
-        -c2[1],
-        3 / 2 * (start_offset[0] - end_offset[0]),
-        3 / 2 * (start_offset[1] - end_offset[1]),
+    path.arc(
+        x + center_offset[0],
+        y + center_offset[1],
+        radius,
+        angle + math.pi,
+        -angle - math.pi,
+        include_m=True,
     )
+    path.args["stroke"] = color
     group.append(path)
-    triangle = make_regular_polygon(
-        x - end_offset[0],
-        y - end_offset[1],
-        3,
-        width * ARROW_HEAD_FACTOR,
-        angle,
-        fill=color,
-    )
-
-    group.append(triangle)
     return group
 
 

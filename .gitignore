@@ -2,3 +2,5 @@
 js_impl/
 target/
 pdf/
+
+*/flamegraph.svg

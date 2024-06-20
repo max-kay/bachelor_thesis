@@ -120,7 +120,6 @@ def p1_example():
         img.append(get_r_triangle(x, HEIGHT / 2, fill="red"))
 
     origin = MARGIN + UNITCELLS // 2 * CELL_LENGTH + feature_off_set
-    img.append(ouroboros(origin, HEIGHT / 2))
     for i in range(-3, 3 + 1):
         if i == 0:
             continue
@@ -134,6 +133,7 @@ def p1_example():
                 **ARROW_VARIANTS[arrow_variant],
             )
         )
+    img.append(ouroboros(origin, HEIGHT / 2))
     img.save_svg("figs/p1.svg")
 
 
