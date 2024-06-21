@@ -46,7 +46,7 @@ eval("__webpack_require__.a(module, async (__webpack_handle_async_dependencies__
   \******************************/
 /***/ ((module, exports, __webpack_require__) => {
 
-eval("module.exports = __webpack_require__.v(exports, module.id, \"61dbacc3ff947964ad17\");\n\n//# sourceURL=webpack:///../pkg/website_bg.wasm?");
+eval("module.exports = __webpack_require__.v(exports, module.id, \"69997b18aaf34bcdbfa8\");\n\n//# sourceURL=webpack:///../pkg/website_bg.wasm?");
 
 /***/ })
 
