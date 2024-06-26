@@ -1,6 +1,5 @@
 #set math.equation(numbering: "(1)")
 #set heading(numbering: "1.")
-#set page(numbering: "1")
 #set figure(
   kind: "Figure",
   supplement: "Figure",
@@ -50,6 +49,8 @@
   ]
 #v(1fr)
 #pagebreak()
+
+#set page(numbering: "1")
 
 #align(
   center,
@@ -219,7 +220,7 @@ $
 
 === Isometries <isometries>
 Isometries are distance and angle preserving transformations on a collection of points and can be represented by an affine transformation.
-For an affine transformation to be an isometry, the following statement must hold for all $X, Y in P$ @Berger_2004:
+For an affine transformation to be an isometry, the following statement must hold for all $X, Y in A$ @Berger_2004:
 $
 d(X, Y) &= d(cal(Q)X, cal(Q)Y)\
 norm(accent(X Y, arrow)) &= norm(accent(cal(Q)X cal(Q)Y, arrow))\
@@ -602,7 +603,7 @@ the pair multiplicities calculated in bounds.
 The file format was implemented using the Rust crate `pest`. 
 `pest` allows for the grammar to be defined in an external file, which then needs to be included in the code.
 The rest of the code needed for parsing is then automatically generated using Rusts macro system,
-allowing for easy changing of the grammar.
+allowing for easy changing of the grammar. Additionally, `pest` provides nice errors when a file cannot be parsed.
 
 An example file is shown below:
 
