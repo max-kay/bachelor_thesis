@@ -1,7 +1,10 @@
 #set math.equation(numbering: "(1)")
 #set heading(numbering: "1.")
-
-#import "@preview/whalogen:0.1.0": ce
+#set page(numbering: "1")
+#set figure(
+  kind: "Figure",
+  supplement: "Figure",
+)
 
 // Display inline code in a small box
 // that retains the correct baseline.
@@ -23,7 +26,7 @@
 
 #let innerproduct(x, y) = $lr(angle.l #x, #y angle.r)$
 
-#let dpdf = box[#sym.Delta PDF]
+#let dpdf = box[#sym.Delta#h(0fr)PDF]
 
 #align(
   center,
@@ -35,6 +38,8 @@
 )
 #align(center)[Max Krummenacher]
 #v(20pt)
+#image("figs/title.svg")
+#v(1fr)
 #align(
   center,
 )[
@@ -43,6 +48,7 @@
     B.Sc. material science and engineering, ETH Zürich\
     supervised by Arkadiy Simonov
   ]
+#v(1fr)
 #pagebreak()
 
 #align(
@@ -50,7 +56,7 @@
 )[
   #set par(justify: false)
   *Abstract* \
-  Pairs of symmetry related sites in crystals are important for many applications, for example the 3D-#dpdf method,
+  Pairs of symmetry related sites in crystals are important for many applications, for example the #box[3D-#dpdf] method,
   which is used to determine the structure of disordered crystals.
   In this work, a program to determine the multiplicity of such pairs was developed.
   This work explains the mathematics behind crystals, special sites in crystals and pairs of symmetry equivalent positions.
@@ -60,29 +66,30 @@
 
 = Introduction <intoduction>
 
-== Disordered Crystals <disorder>
+== Disordered Crystals
 At finite temperatures, materials inherently posses some type of disorder. But, while gases and liquids posses no long-range order, in crystals the 
 equilibrium positions of the atoms are arranged in periodic pattern.
-But crystals still show a degree of disorder. All crystals have disorder in the thermal motion of atoms around their equilibrium positions.
-But in some crystals the formation of vacancies, dislocations and other faults in crystals or magnetic orientations might be a source of disorder.
-Disorder is especially pronounced in crystals which are degenerate, i.e. crystals which have many states at similar energies.
+All crystals have disorder in the thermal motion of atoms around their equilibrium positions. @thermo
+In Addition, in some crystals the formation of vacancies,
+dislocations and other faults or magnetic orientations might be a source of disorder.
+Disorder is especially pronounced in crystals which have degenerate energy states, i.e. crystals which have many states at similar energies.
 
-A good example for degenerate structures is the material class of Prussian blue analogues 
-(materials with composition $#ce("M[M'(CN)_6]")_text(x)$ where M and M' are metal ions).
+A good example for disordered structures is the material class of Prussian blue analogues 
+(materials with composition $M[M'("CN")_6]_x$ where $M$ and $M'$ are metal ions).
 Prussian blue analogues generally have an fcc structure.
-However, not all hexacyano metallates are occupied, as charge neutrality dictates the ratio $x$ between metal ions and hexacyano metallates.
-In some Prussian blue analogues such as #ce("Mn^II [Co^III (CN)_6]_⅔") this fraction of vacancies is impossible to arrange in a way that follows
-the symmetries of the system. The symmetry of the crystal is thus broken.
+However, not all hexacyano metallate sites are occupied, as charge neutrality dictates the ratio $x$ between metal ions and hexacyano metallates.
+In some Prussian blue analogues such as $"Mn"^"II" ["Co"^"III" ("CN")_6]_⅔$ this fraction of vacancies is impossible to arrange in a way that follows
+the symmetries of the system. The symmetry of the crystal is thus broken. @pba
 
 In conventional crystallography this is simplified by defining the average structure.
 Instead of providing precise information about the positions in the whole crystal, the average structure provides probabilistic information about the
 occupation of a position. In the example above, the probability of occupation of a hexacyano metallate is given by $x = ⅔$.
-But by considering only average structure, a lot of information about a material is lost.
 
+But by considering only average structure, a lot of information about a material is lost.
 In fact, these vacancies are not uniformly distributed throughout the crystal. For example, we might expect the vacancies to be more stable if they
 are arranged along certain direction or at certain distances. These correlations are essential as they influence the properties of the material.
 Such as porosity, diffusion coefficients, absorption coefficients and more, which find application ranging from medicine to the development of new
-batteries.
+batteries. @disorder
 
 == Diffuse Scattering <scattering>
 X-ray diffraction is a common technique to determine the crystal structure as well as the lattice parameters of crystals.
@@ -93,7 +100,7 @@ The complex structure factor $F(arrow(h))$ is thus:
 $ F(arrow(h)) = integral_(RR^3) rho(arrow(x)) exp(2 pi i arrow(h) dot arrow(x)) d arrow(x) $
 However, only the magnitude $I(arrow(h)) = abs(F(arrow(h)))^2 = F(arrow(h)) F^*(arrow(h))$
 of the structure factor can be measured in a diffraction experiment.
-For perfectly ordered crystals, the intensity measured is zero everywhere except at certain points. 
+For perfectly ordered crystals, the intensity measured is zero everywhere except at certain points, called Braggs peaks.
 From these diffraction peaks, the Laue group of the crystal can be determined.
 Using iterative approaches such as charge flipping, the phase of the signal can be reconstructed and the average structure can be determined. @superfilp
 
@@ -103,7 +110,7 @@ Using iterative approaches such as charge flipping, the phase of the signal can 
 The Three-Dimensional Pair Distribution function (3D-PDF) is a function used to find correlations in structures.
 In the application for crystallography, it specifically refers to the autocorrelation of the electron density $rho$.
 
-$ text(P D F)(arrow(x)) = integral_(RR^3)rho(arrow(xi))rho(arrow(xi)-arrow(x)) d arrow(xi) $
+$ "PDF"(arrow(x)) = integral_(RR^3)rho(arrow(xi))rho(arrow(xi)-arrow(x)) d arrow(xi) $
 
 The PDF essentially shifts the electron density with respect to itself and then compares the shifted function to itself.
 A high value at point $arrow(x)$ means that the structure is highly correlated with a shift by $arrow(x)$.
@@ -129,7 +136,7 @@ powder diffraction inherently averages the measurement radially.
 The 3D-PDF need to be measured from more complicated single crystal experiments using scaning techniques, but allow more 
 information to be gained from the data analysis.
 
-The #dpdf can be used by programs like Yell to find the local correlations of structure.
+The 3D-#dpdf can be used by programs like Yell to find the local correlations of structure. @Yell
 This is where the main work of the program comes in. The program Yell needs to be given the multiplicity of pairs in a crystal to properly expand
 the PDF.
 
@@ -141,6 +148,8 @@ To this end, affine and Euclidean spaces and transformations of them will be exp
 Furthermore, this report contains the explanation of Wyckoff positions and pairs of sites.
 Additionally, examples of pairs in line groups, wallpaper groups and space groups are given and explained.
 
+#pagebreak()
+
 = Mathematical Description of Crystals <math>
 In the following sections, the described spaces are assumed to be three-dimensional, but all concepts apply analogously to one and two dimensions.
 Higher dimensional spaces are possible, but exceed the scope of this work.
@@ -151,7 +160,7 @@ The scalar product then allows for the calculation of distances and angles, prod
 
 An affine space consists of an associated point space $A$ and an associated vectors space $arrow(A)$.
 These can be thought of as a collection of points and the group of translations acting on them.
-For vectors the notation $bold(v) in arrow(A)$, for a translation from point $X in A$ to $Y in A$ the notation $arrow(A B)$ used,
+For vectors the notation $bold(v) in arrow(A)$, for a translation from point $X in A$ to $Y in A$ the notation $arrow(X Y)$ used,
 this can also be thought of as map $arrow(dot dot): A times A -> arrow(A)$.
 
 In the point space there is one special position $O$ which is the point relative to which all coordinates are given.
@@ -171,7 +180,7 @@ $ cal(Q) = (bold(Q), bold(q)) $
 $ arrow(O tilde(X)) = arrow(O cal(Q) X) = bold(Q) arrow(O X) + bold(q) $
 
 Note that the inversion of $cal(Q)$ is given by $cal(Q)^(-1) = (bold(Q)^(-1), -bold(Q)^(-1) bold(q))$, the composition of two translations is given by 
-$cal(Q) cal(P) = (bold(Q P), bold(Q p + q))$ and the identity is given by $cal(I) = (bold(I), bold(o))$
+$cal(Q) cal(P) = (bold(Q P), bold(Q p + q))$ and the identity is given by $cal(I) = (bold(I), bold(o))$.
 Proofs for these equations, as well as associativity, are given in the appendix.
 
 The scalar product is defined on the vector space with the usual axioms for the scalar product.
@@ -210,7 +219,7 @@ $
 
 === Isometries <isometries>
 Isometries are distance and angle preserving transformations on a collection of points and can be represented by an affine transformation.
-For an affine transformation to be an isometry, the following statement must hold for all $X, Y in P$:
+For an affine transformation to be an isometry, the following statement must hold for all $X, Y in P$ @Berger_2004:
 $
 d(X, Y) &= d(cal(Q)X, cal(Q)Y)\
 norm(accent(X Y, arrow)) &= norm(accent(cal(Q)X cal(Q)Y, arrow))\
@@ -247,7 +256,7 @@ In fact, for all space groups a representation using only matrices from ${-1, 0,
 
 For applications in computation, it is necessary to find a finite representation of space groups.
 One such representation can be found in what will be referred to as the normalized space group of $frak(G)$ denoted $tilde(frak(G))$.
-It is defined as the quotient group of $frak(tilde(G))=frak(G) slash frak(T)$ where $frak(T) = {(bold(I), bold(v))| v in ZZ^3}$ is 
+It is defined as the quotient group of $frak(tilde(G))=frak(G) slash frak(T)$ where $frak(T) = {(bold(I), bold(v))| bold(v) in ZZ^3}$ is 
 the group generated by translations along the basis vectors.
 In the same fashion, the quotient vector space $tilde(arrow(A)) = arrow(A) slash {vec(x, y, z) | x, y, z in ZZ}$
 and the quotient point space $tilde(A) = A slash {vec(x, y, z) | x, y, z in ZZ}$ is defined.
@@ -265,9 +274,12 @@ Thus, the normalized space group must be used to determine their multiplicity.
 
 The multiplicity $n$ of a site is given by $abs(O_tilde(frak(G))(P))$ and the site symmetry at point $P$ is given by $S_tilde(frak(G))(P)$.
 
-A position $P$ is called general if the $S_tilde(frak(G))(P)$ only contains the identity. By the orbit stabilizer theorem its multiplicity is $abs(tilde(frak(G)))$ the order of the space group $frak(G)$.
+A position $P$ is called general if the $S_tilde(frak(G))(P)$ only contains the identity.
+By the orbit stabilizer theorem its multiplicity is $abs(tilde(frak(G)))$ the order of the space group $frak(G)$.
 
-A special position $P$ is a position with a nontrivial stabilizer $S_tilde(frak(G))(P)$. Any object at the point $P$ in crystal must at least have an internal symmetry of its site symmetry, otherwise the symmetry of the crystal is broken.
+A special position $P$ is a position with a nontrivial stabilizer $S_tilde(frak(G))(P)$.
+Any object at the point $P$ in crystal must at least have an internal symmetry of its site symmetry,
+otherwise the symmetry of the crystal is broken. @table
 
 == Pairs in Crystals <pairs>
 A pair is an undordered collection of two positions in crystal structure.
@@ -309,12 +321,14 @@ In the one-dimensional case, there are only two space groups.
 )<p1>
 In p1 all symmetry operations are translations by multiples of the lattice vector $arrow(l)$, it is isomorphic to $(ZZ, +)$.
 Thus, all pairs of symmetry related position can be uniquely described by a position within the unit cell and the translation $n arrow(l)$ between them.
-Figure @p1 shows how, starting from one position, there are two possibilities to construct each type of pair.
-Thus, the multiplicity of such any pair is 2. Per unit cell, there is one starting position $bold(p)$ 
-with the paired position at $bold(p') = bold(p) + n arrow(l)$.
+Figure @p1 shows how, starting from one position, there are two possibilities to construct each type of pair, except the zero pair from the starting
+position to itself, which only exist once.
+Thus, the multiplicity of such any pair in the line group p1 is 2 except that of the zero pair which is two.
+Per unit cell, there is one starting position $bold(p)$ with the paired position at $bold(p') = bold(p) + n arrow(l)$.
 
 === Line Group p1m <examples1.2>
-In p1m additional to the translations by multiples of the lattice $arrow(l)$ there are mirror operations which mirror the line at positions $bold(m) + n arrow(l)$. This group is isomorphic to the direct product $(ZZ, +) times ({-1, 1}, dot)$.
+In p1m additional to the translations by multiples of the lattice $arrow(l)$ there are mirror operations 
+which mirror the line at positions $bold(m) + n arrow(l)$. This group is isomorphic to the direct product $(ZZ, +) times ({-1, 1}, dot)$.
 In p1m there are two Wyckoff positions.
 The general positions with Wyckoff multiplicity 2, in other words it exists twice per unit cell,
 and the special positions at $bold(m)$ and $bold(m) + 1/2 arrow(l)$, which have Wyckoff multiplicity 1 and the site symmetry m.
@@ -328,14 +342,17 @@ The general position has site symmetry 1. For general positions, the pairs can b
 For pairs of type $n arrow(l)$, there exist two possibilities for each pair, one in the positive direction on in the negative.
 Since there are two starting positions per unit cell, the pair multiplicity is 4.
 For pairs which do not occur over a basis vector length, there is only one possibility for the construction of such a pair.
-Considering the two possible starting positions, the pair multiplicity is 2.
+Considering the two possible starting positions, the pair multiplicity is 2. 
+The zero pair is again a special case since it is of type $n arrow(l)$ but still can only be built once from each starting position.
 
 #figure(
   image("figs/p1m_s.svg"),
   caption: [Pairs of special positions in line group p1m],
 )
-Special positions in contrast have site symmetry m. Thus, each pair can be built once in each direction.
-Since the Wyckoff multiplicity is 1, pairs built from special positions have pair multiplicity 2.
+Special positions in contrast have site symmetry m. Thus, each pair can be built once in each direction. Except the zero pair which can again only be 
+built once from each position.
+Since the Wyckoff multiplicity is 1, pairs built from special positions have pair multiplicity 2,
+except the zero neighbor which has pair multiplicity 1.
 
 == Two-dimensional Example <examples2>
 #figure(
@@ -349,8 +366,12 @@ The coordinates of such a point are ($x, 1/4$) with its symmetry equivalent poin
 The three-dimensional examples shown in figure @fig3d are pair expansions from the site $[0,0,0]$ in a primitive cubic structure with the corresponding
 space group Pm$overline(3)$m. As three-dimensional structures are harder to visualize, no more complicated examples are shown here.
 #figure(
-  image("figs/p2mg.svg"),
-  caption: [still TODO],
+  table(
+    columns: (1fr, 1fr, 1fr),
+    stroke: none,
+    image("figs/100.png"), image("figs/110.png"), image("figs/111.png")
+  ),
+  caption: [The First Three Nontrivial Pairs in a Cubic Lattice],
 )<fig3d>
 
 Since there is only one $[0, 0, 0]$ position in a primitive centered cell, the $[0, 0, 0]$ pair has multiplicity one.
@@ -430,6 +451,8 @@ As a safety precaution, an upper limit of 10000 iterations was placed on the out
 
 The struct `IsometryGroup` contains the method `symmetries_in_bounds` which produces all symmetries within the bounds provided.
 
+#pagebreak()
+
 == Wyckoff Positions <positions_impl>
 
 For a position in the unit cell, the Wyckoff position can be calculated from the starting position `position` and the space group `group` by the following process.
@@ -498,7 +521,7 @@ The pair multiplicity now can now be calculated by multiplying the length of the
 with an additional factor of 2 for mixed pairs, as each pair can be constructed from either of the two sites.
 
 == Pair Calculation <main_algo>
-As arguments, the program takes a space group, the positions from which the pairs need to generated, the bounds applied to the problem and optionally
+As arguments, the program takes a space group, the positions from which the pairs need be to generated, the bounds applied to the problem and optionally
 a boolean, which determines if pairs of mixed sites should be calculated.
 
 The program starts by calculating and deduplicating the sites from the given positions.
@@ -512,7 +535,7 @@ fn calculate_multiplicities(
   positions,
   bounds,
   construct_mixed_pairs
-) -> [Expansion] 
+) -> [Expansion]
 {
   sites = [];
   for pos in positions {
@@ -524,13 +547,15 @@ fn calculate_multiplicities(
 
   expansions = [];
   for site in sites {
-    expansions.append(construct_expansions(site, site, group, bounds))
+    expansions.append(construct_expansions(site, site, group, bounds));
   }
 
   if construct_mixed_pairs {
     for i in 0..len(sites) {
       for j in (i+1)..len(sites) {
-        expansions.append(construct_expansions(sites[i], site[j], group, bounds));
+        expansions.append(
+          construct_expansions(sites[i], site[j], group, bounds)
+        );
       }
     }
   }
@@ -571,10 +596,12 @@ Thus, the pairs multiplicities constructed in bounds, are different from those i
 For the main application of this program for the correlation fitting program Yell, this is an advantage. As Yell works with similar bounds and needs
 the pair multiplicities calculated in bounds.
 
+#pagebreak()
+
 == The File Format <file_format>
 The file format was implemented using the Rust crate `pest`. 
-`pest` allows for the grammar to be defined in an external file, which needs to be included in the code.
-The rest of the code needed for the implementation of the code is then automatically generated using Rusts macro system,
+`pest` allows for the grammar to be defined in an external file, which then needs to be included in the code.
+The rest of the code needed for parsing is then automatically generated using Rusts macro system,
 allowing for easy changing of the grammar.
 
 An example file is shown below:
@@ -590,7 +617,7 @@ Note that the identity `x, y, z;` and the translations `1, 0, 0;`, `0, 1, 0;` an
 
 In the `Positions` section, the positions are defined.
 Similarly to the symmetry operations, the positions are given as comma separated values terminated by semicolons.
-Note that all coefficients need to be given as rational numbers. The program currently does not support floating-point coefficients.
+Note that all coefficients need to be given as rational numbers. The program does not support floating-point coefficients.
 
 The `Bounds` section defines the bounds which are applied to the problem, as described in section @note_bounds.
 Here, the coefficients need to be positive integers.
@@ -616,9 +643,55 @@ Or in a simple website, hosted through GitHub Pages #link("https://max-kay.githu
 #bibliography("ref.bib")
 
 
+#pagebreak()
+
+#set heading(numbering: none)
+
 = Appendix
 
+== Example Inputs and Outputs
 
+*Input*
+#let text = read("../files/input/example1")
+#raw(text, block: true, lang: "rust")
+*Output*
+#let text = read("../files/output/example1")
+#raw(text, block: true, lang: "rust")
+
+*Input*
+#let text = read("../files/input/example2")
+#raw(text, block: true, lang: "rust")
+*Output*
+```rust
+              Origin,               Vector, Multiplicity
+           [0, 0, 0],            [0, 0, 0],            2
+           [0, 0, 0],            [0, 0, 1],            4
+           [0, 0, 0],            [0, 1, 0],            4
+           [0, 0, 0],            [0, 1, 1],            8
+           [0, 0, 0],            [1, 0, 0],            4
+           [0, 0, 0],            [1, 0, 1],            4
+           [0, 0, 0],            [1, 0, 2],            4
+           [0, 0, 0],            [1, 1, 0],            8
+           [0, 0, 0],            [1, 1, 1],            8
+           [0, 0, 0],            [1, 1, 2],            8
+           [0, 0, 0],        [1/2, 1/2, 0],            8
+           [0, 0, 0],        [1/2, 1/2, 1],            8
+           [0, 0, 0],        [1/2, 1/2, 2],            8
+           [0, 0, 0],        [1/2, 3/2, 0],            4
+           [0, 0, 0],        [1/2, 3/2, 1],            4
+           [0, 0, 0],        [1/2, 3/2, 2],            4
+           [0, 0, 0],        [3/2, 1/2, 0],            4
+           [0, 0, 0],        [3/2, 1/2, 1],            8
+           [0, 0, 0],        [3/2, 3/2, 0],            2
+           [0, 0, 0],        [3/2, 3/2, 1],            4
+       [1/4, 1/3, 0],            [0, 0, 0],            8
+       [1/4, 1/3, 0],            [0, 0, 1],           16
+       [1/4, 1/3, 0],            [0, 1, 0],           16
+       [1/4, 1/3, 0],            [0, 1, 1],           16
+<output continues>
+```
+
+== Proofs
 *Claim*
 $cal(Q) cal(P) = (bold(Q P), bold(Q p + q))$ is the formula for the composition of affine transformations.
 
@@ -639,8 +712,8 @@ The inverse of $cal(Q) = (bold(Q), bold(q))$ is given by $cal(Q)^(-1) = (bold(Q)
 Consider the following composition using the formula proofed above.
 $
 cal(Q)cal(Q)^(-1) &= (bold(Q), bold(q)) (bold(Q)^(-1), -bold(Q)^(-1) bold(q))\
-&= (bold(Q) cal(Q)^(-1), bold(q) - bold(Q)bold(Q)^(-1) bold(q))\
-&= (bold(I), bold(q) -bold(q)),
+&= (bold(Q) bold(Q)^(-1), bold(q) - bold(Q)bold(Q)^(-1) bold(q))\
+&= (bold(I), bold(q) -bold(q))\
 &= cal(I)
 $
 
@@ -661,5 +734,5 @@ cal(H)cal(T)cal(H)^(-1) &= (bold(H), bold(h))(bold(I), bold(t))(bold(H)^(-1), -b
 $
 
 To be a valid space group, $bold(H)$ must map integer vector to integer vector. Thus, $cal(H)cal(T)cal(H)^(-1) = (bold(I), bold(H)bold(t))$
-is an element of $frak(T)$. qed
+is an element of $frak(T)$.
 

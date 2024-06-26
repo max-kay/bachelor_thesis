@@ -1,0 +1,14 @@
+Space Group:
+0, 1/2, 1/2;
+1/2, 0, 1/2;
+-x, -y, z;
+-x, y, -z;
+z, x, y;
+y, x, -z;
+-x, -y, -z;
+
+Positions:
+0, 0, 0;
+
+Bounds:
+4, 4, 4;

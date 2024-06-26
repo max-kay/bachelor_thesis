@@ -1,0 +1,14 @@
+Space Group:
+1/2, 1/2, 0;
+-x, y, -z;
+-x, -y, -z;
+
+Positions:
+0, 0, 0;
+1/4, 1/3, 0;
+
+Bounds:
+3, 3, 3;
+
+Mixed Pairs:
+true;

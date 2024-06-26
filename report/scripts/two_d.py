@@ -179,3 +179,63 @@ def p2mg():
     img.append(make_legend(HEIGHT / 2, WIDTH - X_MARGIN - LEGEND_WIDTH, legend))
 
     img.save_svg("figs/p2mg.svg")
+
+
+def p2mg_mixed():
+    x_offset = A_LEN / 5
+    y_offset = B_LEN / 4
+    img = get_base()
+    for i in range(UNITCELLS):
+        for j in range(UNITCELLS):
+            img.append(
+                make_regular_polygon(
+                    X_MARGIN + i * A_LEN + x_offset,
+                    Y_MARGIN + j * B_LEN + y_offset,
+                    3,
+                    OBJ_RADIUS,
+                    fill="red",
+                )
+            )
+            img.append(
+                make_regular_polygon(
+                    X_MARGIN + (i + 1) * A_LEN - x_offset,
+                    Y_MARGIN + (j + 1) * B_LEN - y_offset,
+                    3,
+                    OBJ_RADIUS,
+                    theta_0=math.pi,
+                    fill="red",
+                )
+            )
+            assert False, "not implemented"
+            img.append(
+                make_rectangle(
+                    X_MARGIN + i * A_LEN + x_offset,
+                    Y_MARGIN + j * B_LEN + y_offset,
+                )
+            )
+            img.append(
+                make_regular_polygon(
+                    X_MARGIN + (i + 1) * A_LEN - x_offset,
+                    Y_MARGIN + (j + 1) * B_LEN - y_offset,
+                    3,
+                    OBJ_RADIUS,
+                    theta_0=math.pi,
+                    fill="red",
+                )
+            )
+
+    legend = []
+    x_0 = X_MARGIN + A_LEN + x_offset
+    y_0 = Y_MARGIN + B_LEN + y_offset
+
+    img.save_svg("figs/p2mg_mixed.svg")
+
+
+def make_rectangle(x, y, w, h) -> draw.Path:
+    path = draw.Path()
+    path.M(x + w / 2, y + h / 2)
+    path.l(-w, 0)
+    path.l(0, -h)
+    path.l(w, 0)
+    path.l(0, h)
+    return path
