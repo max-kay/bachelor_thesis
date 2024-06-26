@@ -387,7 +387,6 @@ impl IsometryGroup {
     pub fn from_affine_list(pairs: Pairs<Rule>) -> Result<Self> {
         let mut symmetries = Vec::new();
         for pair in pairs {
-            println!("{:?}", pair.as_rule());
             symmetries.push(Isometry::from_parser(pair)?);
         }
         Ok(Self::from_generators(symmetries))
