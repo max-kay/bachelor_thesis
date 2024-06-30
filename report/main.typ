@@ -1,5 +1,6 @@
 #set math.equation(numbering: "(1)")
 #set heading(numbering: "1.")
+#set par(justify: true)
 #set figure(
   kind: "Figure",
   supplement: "Figure",
@@ -42,10 +43,10 @@
 #align(
   center,
 )[
-    Bachelor thesis #datetime.today().display("[day].[month].[year]")\
-    Draft\
-    B.Sc. material science and engineering, ETH Zürich\
-    supervised by Arkadiy Simonov
+  Bachelor Thesis \
+  #datetime.today().display("[day].[month].[year]")\
+  B.Sc. Material Science and Engineering, ETH Zürich\
+  supervised by Arkadiy Simonov
   ]
 #v(1fr)
 #pagebreak()
@@ -60,7 +61,7 @@
   Pairs of symmetry related sites in crystals are important for many applications, for example the #box[3D-#dpdf] method,
   which is used to determine the structure of disordered crystals.
   In this work, a program to determine the multiplicity of such pairs was developed.
-  This work explains the mathematics behind crystals, special sites in crystals and pairs of symmetry equivalent positions.
+  This work explains the mathematics behind crystals, special sites in crystals and pairs of sites in crystals.
   Examples in 1, 2 and 3 dimensions are shown to explain the concepts and algorithms used to determine pair multiplicity
   and the structure of the program is described.
 ]
@@ -115,7 +116,7 @@ $ "PDF"(arrow(x)) = integral_(RR^3)rho(arrow(xi))rho(arrow(xi)-arrow(x)) d arrow
 
 The PDF essentially shifts the electron density with respect to itself and then compares the shifted function to itself.
 A high value at point $arrow(x)$ means that the structure is highly correlated with a shift by $arrow(x)$.
-The PDF of the average structure is known as the Patternson function.
+The PDF of the average structure is known as the Patterson function.
 
 In diffraction experiments, the PDF is convenient as it is easily obtained as the inverse Fourier transform of the measured intensities.
 As such, no calculation of the phase factors is necessary.
@@ -126,15 +127,15 @@ cal(F) ^(-1)(I(arrow(h))) &= cal(F)^(-1) [cal(F)(rho(arrow(x))) cal(F)^*(rho(arr
   &= rho(arrow(x)) * rho(-arrow(x))
 $
 
-The diffraction pattern from an experiment using a disordered crystal not only contains the Bragg peaks but a diffuse pattern in between the peaks.
+The diffraction pattern from an experiment using a disordered crystal not only contains the Braggs peaks but a diffuse pattern in between the peaks.
 This diffuse part of the diffraction pattern contains information about the correlations described in the section on disordered crystals.
-If the average structure is known, the difference between the Patternson function and the real PDF calculated from the measured pattern can be formed.
-This function is called the difference pair distribution function #dpdf.
+If the average structure is known, the difference between the Patterson function and the real PDF calculated from the measured pattern can be formed.
+This function is called the Difference Pair Distribution Function #dpdf.
 
 The PDF and #dpdf can be calculated from measurements from powder diffraction. This, however, leads to a loss of information because 
 powder diffraction inherently averages the measurement radially.
 
-The 3D-PDF need to be measured from more complicated single crystal experiments using scaning techniques, but allow more 
+The 3D-PDF needs to be measured from more complicated single crystal experiments using scanning techniques, but allows more 
 information to be gained from the data analysis.
 
 The 3D-#dpdf can be used by programs like Yell to find the local correlations of structure. @Yell
@@ -171,7 +172,7 @@ This vector is called the position vector.
 Thus, we can assign a coordinate triple to a point $P$ based on the position vector $arrow(O P)$. 
 Note that to specify a basis for an affine space, a basis for the associated vector space and an origin need to be specified.
 
-In the context of crystallography points are usually refered to as positions. This is reflected in the following section and the naming of types
+In the context of crystallography, points are usually referred to as positions. This is reflected in the following section and the naming of types
 in the program.
 
 A general linear transformation of a point $X$ can then be described by a linear transformation of the position vector plus a translation.
@@ -201,7 +202,7 @@ $bold(t)_1, bold(t)_2, bold(t)_3 in RR^3$.
 
 The basis for the vector space can then be given in terms of these vectors. However, in crystallography the basis is sometimes given in terms of
 combinations of these vectors for an easier description of symmetries in the crystal structure.
-Since we aren't concerned about the orientation of the space we can give the basis in terms of the length of the basis vectors $a, b, c$ and
+Since we are not concerned about the orientation of the space we can give the basis in terms of the length of the basis vectors $a, b, c$ and
 the angles between them $alpha, beta, gamma$ known as fractional coordinates.
 
 The metric tensor $G$ can be calculated from these values in the following way:
@@ -259,77 +260,103 @@ For applications in computation, it is necessary to find a finite representation
 One such representation can be found in what will be referred to as the normalized space group of $frak(G)$ denoted $tilde(frak(G))$.
 It is defined as the quotient group of $frak(tilde(G))=frak(G) slash frak(T)$ where $frak(T) = {(bold(I), bold(v))| bold(v) in ZZ^3}$ is 
 the group generated by translations along the basis vectors.
-In the same fashion, the quotient vector space $tilde(arrow(A)) = arrow(A) slash {vec(x, y, z) | x, y, z in ZZ}$
-and the quotient point space $tilde(A) = A slash {vec(x, y, z) | x, y, z in ZZ}$ is defined.
-The order of a space group is defined in such terms.
+In the same fashion, the quotient vector space #box[$tilde(arrow(A)) = arrow(A) slash ZZ^3$]
+and the quotient point space $tilde(A) = A slash ZZ^3$ is defined.
+The order of a space group is defined to be the cardinality of $tilde(frak(G))$.
 
+== Point Groups
+To each space group, there exists a corresponding point group, which is the matrix group which is created by ignoring the translational part of the
+isometries in the space group. They are named point groups because at least on point remains unchanged after a transformation. When represented as a matrix group, the origin always remains unchanged.
+Note that the action of the point group on vectors is the equivalent to the action of the space group.
+
+There exist 32 crystallographic point groups. These groups can further be classified into 11 Laue classes.
+Each Laue class is represented by one specific Laue group, which is obtained by adding the inversion matrix
+$"diag"(-1, -1, -1)$ to the generators of the group. @table
+
+The Laue group is relevant in crystallography because some analysis techniques, like diffraction methods, have an inherent inversion symmetry and
+thus, crystals in the same Laue class produce diffraction patterns of the same symmetry.
+
+In this work, the notation $L(frak(G))$ is used for the Laue group corresponding to the space group $frak(G)$.
 
 == Wyckoff Positions <positions>
 In simple terms, Wyckoff positions describe how many times a site occurs in a unit cell and what symmetries it must follow.
 
 Mathematically, a Wyckoff position can be described by an orbit and a stabilizer.
 An orbit $O_frak(G)(P) = {cal(G) P | cal(G) in frak(G)}$  is the set of points which the point $P$ is mapped to by elements of the group $frak(G)$.
-The stabilizer $S_frak(G)(P) = {cal(G) | cal(G) P = P, cal(G) in frak(G)}$ is the subgroup of $frak(G)$ for which the point $P$ remains unchanged.
+The stabilizer $S_frak(G)(P) = {cal(G) in frak(G) | cal(G) P = P}$ is the subgroup of $frak(G)$ for which the point $P$ remains unchanged.
 Wyckoff sites are commonly given in terms of their position in the unit cell.
 Thus, the normalized space group must be used to determine their multiplicity.
 
-The multiplicity $n$ of a site is given by $abs(O_tilde(frak(G))(P))$ and the site symmetry at point $P$ is given by $S_tilde(frak(G))(P)$.
+The multiplicity $n$ of a site is given by $abs(O_tilde(frak(G))(P))$, the orbit of the point $P$ in the unit cell, 
+and the site symmetry at point $P$ is given by $S_frak(G)(P)$.
 
-A position $P$ is called general if the $S_tilde(frak(G))(P)$ only contains the identity.
+A position $P$ is called general if the $S_tilde(frak(G))(P)$ only contains the identity, i.e. is the trivial group.
 By the orbit stabilizer theorem its multiplicity is $abs(tilde(frak(G)))$ the order of the space group $frak(G)$.
 
 A special position $P$ is a position with a nontrivial stabilizer $S_tilde(frak(G))(P)$.
 Any object at the point $P$ in crystal must at least have an internal symmetry of its site symmetry,
-otherwise the symmetry of the crystal is broken. @table
+otherwise, the symmetry of the crystal is broken. @table
 
 == Pairs in Crystals <pairs>
-A pair is an undordered collection of two positions in crystal structure.
-We can describe a pair in terms of $(P_1, P_2)$ where $P_1, P_2$ are points in the crystal structure.
-The action of $cal(G)$ on a pair can then be defined by:
-$
-cal(G) (P_1, P_2) = (cal(G)P_1, cal(G)P_2)
-$
-Note that this describes ordered pairs. This can be remedied by defining the following equivalence relation:
-$ p ~ q <=> (P_1 = Q_1 and P_2 = Q_2) or (P_1 = Q_2 and P_2 = Q_1) $
+A pair is an ordered collection of two positions.
+It can be represented by a starting position $P$ and a pair vector $bold(v)$, the vector to the other position of the pair.
+The equivalence of pairs is best treated separately for single site pairs and mixed site pairs.
 
-For pairs of symmetry inequivalent positions, i.e. on different Wyckoff sites, this definition is not strictly needed, as the positions can still be
-uniquely identified after applying a symmerty by the site their from.
+In a single site pairs, both the starting position $P$ and the ending position $P + bold(v)$ are of the same Wyckoff site.
+In other words, there is a symmetry element $cal(G) in frak(G)$ such that $P = cal(G) (P + bold(v)$.
+In this case, the pairs $(P, bold(v))$ and $(P', bold(v)')$ are considered equivalent
+if there is a matrix $bold(G) in L(frak(G))$, the Laue Group of $frak(G)$, such that $bold(v) = bold(G) bold(v)'$
+and a symmetry element $cal(G) in frak(G)$ such that $P = cal(G) P'$.
 
-Let the expansion $E_frak(G)(P_1, P_2)$ be the set of all symmetry equivalent pairs to the pair $(P_1, P_2)$, containing the point $P_1$.
-The expansion of a pair contains two types of pairs.
-The first type is generated by the stabilizer of $P_1$. The second type only exist in single site pairs 
-and is produced by the symmetries which take $P_2$ to $P_1$.
+For mixed site pairs, the equivalence is slightly more complicated, as a pair can have its starting point at either site.
+Thus, a mixed type pair is considered equivalent to the pair $(P, bold(v))$ if either the condition from above is true 
+or if it is equivalent to the pair $(P+bold(v), -bold(v))$ the reversed pair.
+
+Note that for single type pairs the pairs $(P, bold(v))$ and $(P+bold(v), -bold(v))$ are already considered equivalent by the first conditions,
+since $bold(v)$ and $-bold(v)$ are always related by the inversion element which by definition is part of the Laue group and $P$ is symmetry related
+to $P + bold(v)$ because they are of the same Wyckoff site.
+
+Let the expansion $E_frak(G)(P, bold(v))$ be the set of all equivalent pairs to the pair $(P, bold(v))$ with starting position $P$.
+Note that the expansion is not simply the orbit of the vector $bold(v)$ under the Laue group $L(frak(G))$,
+but because of the second condition is a subset thereof.
+
+$
+E_frak(G)(P, bold(v)) = {(P, bold(v)') | (exists bold(G) in L(frak(G))) [bold(v) = bold(G) bold(v)'] and P + bold(v)' in O_frak(G)(P + bold(v))}
+$
 
 The pair multiplicity is defined to be the product of the cardinality of the expansion and the cardinality of the orbit of the first point of the pair.
-An additional factor of 2 is required for mixed pairs, as they can be constructed from the either of the starting positions.
+An additional factor of 2 is required for mixed pairs, as they can be constructed from either of the starting positions.
 
 $
 M(P_1, P_2) = cases(
-  &abs(E_frak(G)(P_1, P_2)) abs(O_tilde(frak(G))(P_1)) &"if" P_2 in O_frak(G)(P_1),
-  2 &abs(E_frak(G)(P_1, P_2)) abs(O_tilde(frak(G))(P_1)) &"else"
+  &abs(E_frak(G)(P_1, arrow(P_1 P_2))) abs(O_tilde(frak(G))(P_1)) &"if" P_2 in O_frak(G)(P_1),
+  2 &abs(E_frak(G)(P_1, arrow(P_1 P_2))) abs(O_tilde(frak(G))(P_1)) &"else"
 )
 $
 
 = Examples of Pair Multiplicities <examples>
 
 == One-dimensional Examples <examples1>
-In the one-dimensional case, there are only two space groups. 
+In the one-dimensional case, there are only two line groups.
 
 === Line Group p1 <examples1.1>
+In p1 all symmetry operations are translations by multiples of the lattice vector $arrow(l)$, it is isomorphic to $(ZZ, +)$.
+Thus, all pairs of symmetry related position can be uniquely described by a position within the unit cell and the translation $n arrow(l)$ between them.
+
 #figure(
   image("figs/p1.svg"),
   caption: [Pairs in line group p1],
 )<p1>
-In p1 all symmetry operations are translations by multiples of the lattice vector $arrow(l)$, it is isomorphic to $(ZZ, +)$.
-Thus, all pairs of symmetry related position can be uniquely described by a position within the unit cell and the translation $n arrow(l)$ between them.
-Figure @p1 shows how, starting from one position, there are two possibilities to construct each type of pair, except the zero pair from the starting
+
+Figure @p1 shows how, starting from one position, there are two possibilities to construct each type of pair, except the zeroth pair from the starting
 position to itself, which only exist once.
-Thus, the multiplicity of such any pair in the line group p1 is 2 except that of the zero pair which is two.
+Thus, the multiplicity of such any pair in the line group p1 is 2 except that of the zeroth pair, which is two.
 Per unit cell, there is one starting position $bold(p)$ with the paired position at $bold(p') = bold(p) + n arrow(l)$.
 
 === Line Group p1m <examples1.2>
 In p1m additional to the translations by multiples of the lattice $arrow(l)$ there are mirror operations 
-which mirror the line at positions $bold(m) + n arrow(l)$. This group is isomorphic to the direct product $(ZZ, +) times ({-1, 1}, dot)$.
+which mirror the line at positions $bold(m) + n arrow(l)$. This group is isomorphic to the direct product #box[$(ZZ, +) times ({-1, 1}, dot)$.]
+
 In p1m there are two Wyckoff positions.
 The general positions with Wyckoff multiplicity 2, in other words it exists twice per unit cell,
 and the special positions at $bold(m)$ and $bold(m) + 1/2 arrow(l)$, which have Wyckoff multiplicity 1 and the site symmetry m.
@@ -338,33 +365,48 @@ Here the calculation of the pair multiplicity must be treated differently for or
 #figure(
   image("figs/p1m_g.svg"),
   caption: [Pairs of general positions in line group p1m],
-)
-The general position has site symmetry 1. For general positions, the pairs can be categorized further into two categories.
+)<fig:1d2>
+The general position has site symmetry 1. For general positions, the pairs (shown in @fig:1d2 can be categorized further into two categories.
 For pairs of type $n arrow(l)$, there exist two possibilities for each pair, one in the positive direction on in the negative.
 Since there are two starting positions per unit cell, the pair multiplicity is 4.
+
 For pairs which do not occur over a basis vector length, there is only one possibility for the construction of such a pair.
 Considering the two possible starting positions, the pair multiplicity is 2. 
-The zero pair is again a special case since it is of type $n arrow(l)$ but still can only be built once from each starting position.
+The zeroth pair is again a special case since it is of type $n arrow(l)$ but still can only be built once from each starting position.
 
 #figure(
   image("figs/p1m_s.svg"),
   caption: [Pairs of special positions in line group p1m],
-)
-Special positions in contrast have site symmetry m. Thus, each pair can be built once in each direction. Except the zero pair which can again only be 
+)<fig:1d3>
+Special positions in contrast have site symmetry m. Their pair expansions are shown in @fig:1d3.
+Thus, each pair can be built once in each direction. Except the zeroth pair, which can again only be 
 built once from each position.
 Since the Wyckoff multiplicity is 1, pairs built from special positions have pair multiplicity 2,
-except the zero neighbor which has pair multiplicity 1.
+except the zeroth pair which has pair multiplicity 1.
+
+#pagebreak()
 
 == Two-dimensional Example <examples2>
+As a next example, consider pairs of positions on the mirror axis of the wallpaper group p2mg.
+The coordinates of such a point are ($x, 1/4$) with its symmetry equivalent point at ($1-x, 3/4$).
 #figure(
   image("figs/p2mg.svg"),
   caption: [Pairs in the wallpaper group p2mg],
-)
-As a next example, consider pairs of positions on the mirror axis of the wallpaper group p2mg.
-The coordinates of such a point are ($x, 1/4$) with its symmetry equivalent point at ($1-x, 3/4$).
+)<fig:2d>
+@fig:2d shows the pair expansions of the shortest pairs of these sites.
+Similar to the pairs of general positions in the line group p1m the zeroth pair has multiplicity 2, because the Wyckoff multiplicity is 2.
+
+In this two-dimensional example, it is apparent why we need to consider the expansion under the Laue group as the pair with pair vector
+$angle.l 1 0 angle.r$ and the pair with pair vector $angle.l overline(1) 0 angle.r$ are equivalent even though there is no symmetry element which would 
+transform one to the other.
+
+The pairs shown in blue show why the additional requirement for the ending position to be in the orbit of $P+bold(v)$ needs to exist, as the inversion 
+of those pair vectors do not point to a valid position.
+
+#pagebreak()
 
 == Three-dimensional Example <examples3>
-The three-dimensional examples shown in figure @fig3d are pair expansions from the site $[0,0,0]$ in a primitive cubic structure with the corresponding
+The three-dimensional examples shown in @fig3d are pair expansions from the site $[0,0,0]$ in a primitive cubic structure with the corresponding
 space group Pm$overline(3)$m. As three-dimensional structures are harder to visualize, no more complicated examples are shown here.
 #figure(
   table(
@@ -375,8 +417,8 @@ space group Pm$overline(3)$m. As three-dimensional structures are harder to visu
   caption: [The First Three Nontrivial Pairs in a Cubic Lattice],
 )<fig3d>
 
-Since there is only one $[0, 0, 0]$ position in a primitive centered cell, the $[0, 0, 0]$ pair has multiplicity one.
-The $[1, 0, 0]$ pairs have a pair multiplicity of 6, the $[1, 1, 0]$ pairs have a multiplicity of 12 and the $[1, 1, 1]$ pairs have a multiplicity of 8.
+Since there is only one $angle.l 0 0 0 angle.r$ position in a primitive centered cell, the zeroth pair has multiplicity 1.
+The $angle.l 1 0 0 angle.r$ pairs have a pair multiplicity of 6, the $angle.l 1 1 0 angle.r$ pairs have a multiplicity of 12 and the $angle.l 1 1 1 angle.r$ pairs have a multiplicity of 8.
 Note the correspondence between these pair of multiplicities and the number of faces, edges, and vertices of a cube.
 
 
@@ -397,12 +439,15 @@ Similarly, matrices `Mat3` and affine transformations `Affine3` were implemented
 
 Additionally, a struct `Bounds3` was defined. It is used for the implementation of the remainder. Here 3 integers were chosen as it only makes sense to 
 produce integer bounds in a crystal lattice.
+
 The remainder operation was defined on positions `Pos3` such that each the result of the operation `Pos3(x', y', z') = Pos3(x, y, z) % Bounds3(a, b, c)`
 produces coordinates `x'`, `y'`and `z'` in the ranges $[0, a)$, $[0, b)$ and $[0, c)$ respectively.
 Note that if $a, b, c = 1$ the remainder produces positions in the unit cell.
+
 For vectors `Vec3` the operation `Vec3(x', y', z') = Vec3(x, y, z) % Bounds3(a, b, c)` such that it produces coefficients
 `x'`, `y'`and `z'` in the ranges $(-a/2, a/2]$, $(-b/2, b/2]$ and $(-c/2, c/2]$ respectively.
 The different implementation of the remainder for `Vec3` allows vectors to be represented by the shortest vector in the equivalence class. 
+
 The remainder operation was defined on affine transformations `Affine3` too. Here the operation leaves the matrix untouched but takes the remainder of the associated vector.
 
 == Space Group Implementation <space_group_impl>
@@ -452,7 +497,69 @@ As a safety precaution, an upper limit of 10000 iterations was placed on the out
 
 The struct `IsometryGroup` contains the method `symmetries_in_bounds` which produces all symmetries within the bounds provided.
 
+== Point Group Implementation
+The struct `PointGroup` is used to represent point groups, it can be constructed from its generators in the same fashion as the space group.
+
+```rust
+fn point_group_new(generators) -> PointGroup {
+  symmetries = [];
+
+  for sym in generators {
+    if sym not in symmerties {
+      symmetries.push(sym);
+    }
+  }
+
+  added_new = true;
+
+  while added_new {
+    added_new = false;
+    for sym_1 in symmetries {
+      for sym_2 in symmetries {
+        new_op = sym_1 * sym_2;
+        if new_op not in symmetries {
+          symmetries.push(new_op);
+          added_new = true;
+        }
+      }
+    }
+  }
+  return PointGroup{ symmetries };
+}
+```
+Note that for point groups, no normalization is necessary.
+
+The algorithm to produce the point group associated with a space group iterates through all space group symmetries,
+extracts the matrix part of the symmetry and deduplicates the resulting list.
+
+```rust
+fn to_point_group(space_group) -> PointGroup {
+  new_symmetries = [];
+  for sym in space_group.symmetries {
+    matrix = sym.matrix;
+    if matrix not in new_symmetries {
+      new_symmetries.push(matrix);
+    }
+  }
+  return PointGroup{ symmetries: new_symmetries };
+}
+```
+
+Laue group can be created by a similar process but since the inversion element is pushed
+to the list of matrices, the list of symmetries needs to be sent through the `point_group_new` method, to ensure closure under multiplication.
+
 #pagebreak()
+
+```rust
+fn to_laue_group(space_group) -> PointGroup {
+  new_symmetries = [];
+  for sym in space_group.symmetries {
+    new_symmetries.push(sym.matrix);
+  }
+  symmetries.push(diagonal_matrix(-1, -1, -1));
+  return point_group_new(symmetries);
+}
+```
 
 == Wyckoff Positions <positions_impl>
 
@@ -464,7 +571,7 @@ fn site_new(position, group) -> Site {
   position = position % bounds;
   orbit = [position];
 
-  for sym in symmetries {
+  for sym in group.get_symmetries() {
     new_pos = sym * position;
     if new_pos % bounds == position {
       stabilizer.push(symmetry_from_translation(position - new_pos) * sym);
@@ -481,45 +588,55 @@ The Wyckoff multiplicity is the length of the orbit, as they represent all symme
 A struct called `Site` is used to collect the starting position, the orbit and the stabilizer.
 
 The struct `Site` contains the method `orbit_in_bounds` which produces the orbit within the bounds provided.
+Moreover, the struct `Site` contains the method `contains_pos` which returns a `true` if the position is in the site and `false` otherwise.
 
 == Pair Expansion Implementation <pairs_impl>
-The constructor for `Expansion` takes the starting position, the vector associated with the pair and the isometry group.
-After translating the starting position into the unit cell. The `Site` is constructed from the starting position and the space group.
-The pair vector is added to the starting position and the resulting position is checked against the orbit of the `Site`.
-
-
-Then the following algorithm is applied to the pair to determine its expansion:
+The constructor for the struct `Expansion` takes the site of the origin, the site of the ending position, the end_position, the space group and
+the bounds which need to be applied to the problem.
 
 ```rust
-fn expansion_new(origin_site, end_position, group, bounds) -> Expansion {
+fn expansion_new(
+  origin_site, 
+  end_site, 
+  end_position, 
+  space_group, 
+  bounds
+) -> Expansion 
+{
   expansion = [];
   start_position = orgin_site.position;
+  pair_vector = end_position - starting_position;
 
-  for sym in group.symmetries_in_bounds(bounds) {
-    new_p1 = (op * start_position) % bounds;
-    new_p2 = (op * end_position) % bounds;
-    if new_p1 == start_position and new_pos2 not in expansion {
-      expansion.push(new_p2);
-    }
-    if new_p2 == start_position and new_pos1 not in expansion {
-      expansion.push(new_p1);
+  for op in to_laue_group(space_group).symmetries {
+    new_vec = (op * pair_vector) % bounds;
+    if end_site.contains_pos(origin_position + new_vec)
+      && !(expansion.contains(&new_vec))
+    {
+      expansion.push(new_vec % bounds);
     }
   }
 
   return Expansion {
-    is_ab_pair: not site_contains_pos(origin_site, end_position),
+    is_ab_pair: not end_site.contains_pos(origin_site, end_position),
     origin_site,
     vec: end_position - origin_position,
     expansion,
   }
 }
 ```
-This algorithm applies each operation to the starting and end position of the pair and then checks either one of the positions was mapped to the
-original starting position, if so, it appends the other position to the expansion.
-Subsequently the end position is tested against the origin_site to see if the pair is a single site or mixed site pair.
+This algorithm applies each element of the Laue group associated with the space group to the pair vector.
+Then it checks if the ending position of the pair with the newly created pair vector is in the ending site of the pair and 
+if the expansion does not already contain this pair vector, and if so, pushes the new pair vector on the list of pair vectors.
+
+Subsequently, the end position is tested against the `origin_site` to see if the pair is a single site or mixed site pair.
 
 The pair multiplicity now can now be calculated by multiplying the length of the expansion with the length of the orbit of the pairs and 
 with an additional factor of 2 for mixed pairs, as each pair can be constructed from either of the two sites.
+
+Furthermore, the struct `Expansion` contains a method `contains_pair` which when given to points determines if the pair created by these points
+is equivalent to the expansion. This function assumes the check is only performed if the starting position of the pair given is equal to the
+starting position from which the expansion is created, as this sufficient for the algorithms used in this work.
+As a safety measure, this method fails if this assumption is not met.
 
 == Pair Calculation <main_algo>
 As arguments, the program takes a space group, the positions from which the pairs need be to generated, the bounds applied to the problem and optionally
@@ -575,7 +692,7 @@ fn construct_expansions(site_1, site_2, group, bounds) -> [PairExpansion] {
   expansions = [];
   origin_position = site_1.position;
   for pos in site_2.orbit_in_bounds(bounds) {
-    if not contains_pair(expansions, origin_position, pos) {
+    if not contains_pair(expansions, origin_position, pos, bounds) {
       expansions.push(PairExpansion::new(origin_position, pos, group, bounds));
     }
   }
@@ -593,11 +710,10 @@ This has consequences for the pair multiplicities.
 
 As an example, consider the pair with vector `[2, 0, 0]`. In an infinite crystal, the pair with vector
 `[-2, 0, 0]` can always be constructed from this pair. But in the bounds `Bounds3(4, 4, 4)` these vectors are considered equivalent.
-Thus, the pairs multiplicities constructed in bounds, are different from those in an infinite crystal.
+Thus, the pair multiplicities constructed in bounds, are different from those in an infinite crystal.
 For the main application of this program for the correlation fitting program Yell, this is an advantage. As Yell works with similar bounds and needs
 the pair multiplicities calculated in bounds.
 
-#pagebreak()
 
 == The File Format <file_format>
 The file format was implemented using the Rust crate `pest`. 
@@ -635,7 +751,7 @@ Furthermore, algorithms to calculate Wyckoff positions and pair expansions were 
 These implementations were used to create a program to construct all possible pairs of positions in any bounded space group.
 Additionally, the pair multiplicities were explained using one-, two- and three-dimensional examples.
 
-The code for this project (including the code for this report and the slides for the talk)
+The code for this project (including the markup for this report and the slides for the talk)
 can be found in a GitHub repository #link("https://github.com/max-kay/bachelor_thesis")[github.com/max-kay/bachelor_thesis].
 The program can be used in two ways.
 Either it is used as a command line tool. Please follow the instructions in the `README.md` on GitHub to build the tool from source.
@@ -650,47 +766,6 @@ Or in a simple website, hosted through GitHub Pages #link("https://max-kay.githu
 
 = Appendix
 
-== Example Inputs and Outputs
-
-*Input*
-#let text = read("../files/input/example1")
-#raw(text, block: true, lang: "rust")
-*Output*
-#let text = read("../files/output/example1")
-#raw(text, block: true, lang: "rust")
-
-*Input*
-#let text = read("../files/input/example2")
-#raw(text, block: true, lang: "rust")
-*Output*
-```rust
-              Origin,               Vector, Multiplicity
-           [0, 0, 0],            [0, 0, 0],            2
-           [0, 0, 0],            [0, 0, 1],            4
-           [0, 0, 0],            [0, 1, 0],            4
-           [0, 0, 0],            [0, 1, 1],            8
-           [0, 0, 0],            [1, 0, 0],            4
-           [0, 0, 0],            [1, 0, 1],            4
-           [0, 0, 0],            [1, 0, 2],            4
-           [0, 0, 0],            [1, 1, 0],            8
-           [0, 0, 0],            [1, 1, 1],            8
-           [0, 0, 0],            [1, 1, 2],            8
-           [0, 0, 0],        [1/2, 1/2, 0],            8
-           [0, 0, 0],        [1/2, 1/2, 1],            8
-           [0, 0, 0],        [1/2, 1/2, 2],            8
-           [0, 0, 0],        [1/2, 3/2, 0],            4
-           [0, 0, 0],        [1/2, 3/2, 1],            4
-           [0, 0, 0],        [1/2, 3/2, 2],            4
-           [0, 0, 0],        [3/2, 1/2, 0],            4
-           [0, 0, 0],        [3/2, 1/2, 1],            8
-           [0, 0, 0],        [3/2, 3/2, 0],            2
-           [0, 0, 0],        [3/2, 3/2, 1],            4
-       [1/4, 1/3, 0],            [0, 0, 0],            8
-       [1/4, 1/3, 0],            [0, 0, 1],           16
-       [1/4, 1/3, 0],            [0, 1, 0],           16
-       [1/4, 1/3, 0],            [0, 1, 1],           16
-<output continues>
-```
 
 == Proofs
 *Claim*
@@ -737,3 +812,49 @@ $
 To be a valid space group, $bold(H)$ must map integer vector to integer vector. Thus, $cal(H)cal(T)cal(H)^(-1) = (bold(I), bold(H)bold(t))$
 is an element of $frak(T)$.
 
+#pagebreak()
+
+== Example Inputs and Outputs
+
+*Input*
+#let text = read("../files/input/example1")
+#raw(text, block: true, lang: "rust")
+*Output*
+#let text = read("../files/output/example1")
+#raw(text, block: true, lang: "rust")
+
+#pagebreak()
+
+*Input*
+#let text = read("../files/input/example2")
+#raw(text, block: true, lang: "rust")
+*Output*
+```rust
+              Origin,               Vector, Multiplicity
+           [0, 0, 0],            [0, 0, 0],            2
+           [0, 0, 0],            [0, 0, 1],            4
+           [0, 0, 0],            [0, 1, 0],            4
+           [0, 0, 0],            [0, 1, 1],            8
+           [0, 0, 0],            [1, 0, 0],            4
+           [0, 0, 0],            [1, 0, 1],            4
+           [0, 0, 0],           [1, 0, -1],            4
+           [0, 0, 0],            [1, 1, 0],            8
+           [0, 0, 0],            [1, 1, 1],            8
+           [0, 0, 0],           [1, 1, -1],            8
+           [0, 0, 0],        [1/2, 1/2, 0],            8
+           [0, 0, 0],        [1/2, 1/2, 1],            8
+           [0, 0, 0],       [1/2, 1/2, -1],            8
+           [0, 0, 0],        [1/2, 3/2, 0],            4
+           [0, 0, 0],        [1/2, 3/2, 1],            4
+           [0, 0, 0],       [1/2, 3/2, -1],            4
+           [0, 0, 0],        [3/2, 1/2, 0],            4
+           [0, 0, 0],        [3/2, 1/2, 1],            8
+           [0, 0, 0],        [3/2, 3/2, 0],            2
+           [0, 0, 0],        [3/2, 3/2, 1],            4
+       [1/4, 1/3, 0],            [0, 0, 0],            8
+       [1/4, 1/3, 0],            [0, 0, 1],           16
+       [1/4, 1/3, 0],            [0, 1, 0],           16
+       [1/4, 1/3, 0],            [0, 1, 1],           32
+       [1/4, 1/3, 0],            [1, 0, 0],           16
+<output continues>
+```
