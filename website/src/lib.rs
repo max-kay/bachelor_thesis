@@ -16,12 +16,16 @@ pub fn get_example() -> String {
 
 #[wasm_bindgen]
 pub fn process_input(string: &str) -> String {
-    let (group, positions, bounds, construct_ab_pairs) =
+    let (mut group, positions, bounds, construct_ab_pairs) =
         match crystallography::objects::from_str(string) {
             Ok(args) => args,
             Err(err) => return format!("There was an error during parsing:\n {}", err),
         };
-    let expansions =
-        crystallography::objects::calculate_pairs(group, positions, bounds, construct_ab_pairs);
+    let expansions = crystallography::objects::calculate_pairs(
+        &mut group,
+        positions,
+        bounds,
+        construct_ab_pairs,
+    );
     convert_string_for_wasm(crystallography::objects::produce_output_string(&expansions))
 }
