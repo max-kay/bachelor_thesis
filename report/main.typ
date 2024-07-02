@@ -276,8 +276,6 @@ $"diag"(-1, -1, -1)$ to the generators of the group. @table
 The Laue group is relevant in crystallography because some analysis techniques, like diffraction methods, have an inherent inversion symmetry and
 thus, crystals in the same Laue class produce diffraction patterns of the same symmetry.
 
-In this work, the notation $L(frak(G))$ is used for the Laue group corresponding to the space group $frak(G)$.
-
 == Wyckoff Positions <positions>
 In simple terms, Wyckoff positions describe how many times a site occurs in a unit cell and what symmetries it must follow.
 
