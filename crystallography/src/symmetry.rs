@@ -45,16 +45,6 @@ impl PointGroupElement {
                 .expect("point group elements are always inverible"),
         )
     }
-
-    /// creates the identity
-    pub fn identity() -> Self {
-        Self(Mat3::identity())
-    }
-
-    /// creates the inversion
-    pub fn inversion() -> Self {
-        Self(Mat3::diag((-1).into(), (-1).into(), (-1).into()))
-    }
 }
 
 impl Into<Matrix3<f32>> for PointGroupElement {
@@ -94,18 +84,8 @@ impl Mul<Pos3> for PointGroupElement {
 copy_mul_impl!(PointGroupElement, Pos3);
 
 /// a struct representing a pointgroup
-#[derive(Clone, Debug)]
 pub struct PointGroup {
     symmetries: Vec<PointGroupElement>,
-}
-
-impl Display for PointGroup {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        for op in &self.symmetries {
-            writeln!(f, "{}", Affine3::from_mat(op.0))?;
-        }
-        Ok(())
-    }
 }
 
 impl PointGroup {
@@ -347,7 +327,6 @@ impl RemAssign<&Bounds3> for Isometry {
 #[derive(Debug, Clone)]
 pub struct IsometryGroup {
     symmetries: Vec<Isometry>,
-    laue_group: Option<PointGroup>,
 }
 
 impl PartialEq for IsometryGroup {
@@ -399,10 +378,7 @@ impl IsometryGroup {
         if symmetries.is_empty() {
             symmetries = vec![Isometry::new(Affine3::identity()).expect("identity is an Isometry")]
         }
-        Self {
-            symmetries,
-            laue_group: None,
-        }
+        Self { symmetries }
     }
 
     /// this function takes a oplist as a string and parses it
@@ -440,10 +416,7 @@ impl IsometryGroup {
         for sym in symmetries.iter() {
             assert_eq!(*sym, sym % Bounds3::splat(1))
         }
-        let this = Self {
-            symmetries,
-            laue_group: None,
-        };
+        let this = Self { symmetries };
         if !this.check_represetation() {
             return None;
         }
@@ -491,20 +464,6 @@ impl IsometryGroup {
             .collect();
         PointGroup::from_closed_symmetries(symmetries)
             .expect("a space group can always be reduced to a point group")
-    }
-
-    /// creates the laue group of the space group
-    pub fn get_laue_group(&mut self) -> &PointGroup {
-        if self.laue_group.is_none() {
-            let mut symmetries: Vec<_> = self
-                .symmetries
-                .iter()
-                .map(Isometry::reduce_to_point_group_element)
-                .collect();
-            symmetries.push(PointGroupElement::inversion());
-            self.laue_group = Some(PointGroup::from_generators(symmetries));
-        }
-        self.laue_group.as_ref().expect("just created it")
     }
 }
 

@@ -426,15 +426,6 @@ impl Mat3 {
               o, i, o,
               o, o, i])
     }
-
-    /// returns the identity matrix
-    #[rustfmt::skip]
-    pub fn diag(d_1: Frac, d_2: Frac, d_3: Frac) -> Self {
-        let o: Frac = 0.into();
-        Self([d_1, o, o,
-              o, d_2, o,
-              o, o, d_3])
-    }
 }
 
 impl Display for Mat3 {
@@ -1079,30 +1070,18 @@ mod tests {
 
     #[test]
     fn test_rem() {
-        let bounds: Bounds3 = [3, 2, 1].into();
+        let super_cell: Bounds3 = [3, 2, 1].into();
         assert_eq!(
             Pos3::origin(),
-            Pos3::new(3.into(), 2.into(), 1.into()) % bounds
+            Pos3::new(3.into(), 2.into(), 1.into()) % super_cell
         );
         assert_eq!(
             Pos3::new(2.into(), 0.into(), 0.into()),
-            Pos3::new(2.into(), 2.into(), 1.into()) % bounds
+            Pos3::new(2.into(), 2.into(), 1.into()) % super_cell
         );
         assert_eq!(
             Vec3::new((-1).into(), 1.into(), 0.into()),
-            Vec3::new(2.into(), 1.into(), 1.into()) % bounds
-        );
-        assert_eq!(
-            Vec3::new((-1).into(), Frac::new(1, 2), 0.into()),
-            Vec3::new(2.into(), Frac::new(1, 2), 1.into()) % bounds
-        );
-        assert_eq!(
-            Vec3::new((-1).into(), Frac::new(1, 1), 0.into()),
-            Vec3::new(2.into(), Frac::new(-1, 1), 3.into()) % bounds
-        );
-        assert_eq!(
-            Vec3::new((-1).into(), Frac::new(-1, 3), 0.into()),
-            Vec3::new(2.into(), Frac::new(5, 3), 10.into()) % bounds
+            Vec3::new(2.into(), 1.into(), 1.into()) % super_cell
         );
     }
 

@@ -15,14 +15,9 @@ fn print_help() {
 }
 
 fn make_output<P: AsRef<Path>>(path: P) -> anyhow::Result<String> {
-    let (mut group, positions, bounds, construct_ab_pairs) =
-        crystallography::objects::from_file(path)?;
-    let expansions = crystallography::objects::calculate_pairs(
-        &mut group,
-        positions,
-        bounds,
-        construct_ab_pairs,
-    );
+    let (group, positions, bounds, construct_ab_pairs) = crystallography::objects::from_file(path)?;
+    let expansions =
+        crystallography::objects::calculate_pairs(group, positions, bounds, construct_ab_pairs);
     Ok(crystallography::objects::produce_output_string(&expansions))
 }
 

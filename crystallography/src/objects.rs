@@ -89,18 +89,17 @@ impl ReducedSite {
 pub struct PairExpansion {
     origin_site: ReducedSite,
     vec: Vec3,
-    expansion: Vec<Vec3>,
+    expansion: Vec<Pos3>,
     is_ab_pair: bool,
 }
 
 impl PairExpansion {
     /// returns true if the site Pair expansion contains the pair.
     /// note this only works if the origin is the origin position of the pair expansion
-    fn contains_pair(&self, origin_position: Pos3, end_position: Pos3, bounds: Bounds3) -> bool {
+    fn contains_pair(&self, origin_position: Pos3, end_position: Pos3) -> bool {
         assert_eq!(self.origin_site.position, origin_position);
-        let pair_vec = (end_position - origin_position) % bounds;
-        for vec in &self.expansion {
-            if *vec == pair_vec {
+        for pos in &self.expansion {
+            if *pos == end_position {
                 return true;
             }
         }
@@ -111,25 +110,27 @@ impl PairExpansion {
     /// note that the pair must be between symmetry equivalent positions.
     pub fn from_positions(
         origin_site: &Site,
-        end_site: &Site,
         end_position: Pos3,
-        group: &mut IsometryGroup,
+        group: &IsometryGroup,
         bounds: Bounds3,
     ) -> Self {
         let origin_position = origin_site.position;
-        let pair_vector = (end_position - origin_position) % bounds;
 
         let mut expansion = Vec::new();
-        for op in group.get_laue_group().iter() {
-            let new_vec = (op * pair_vector) % bounds;
-            if end_site.contains_pos(origin_position + new_vec) && !(expansion.contains(&new_vec)) {
-                expansion.push(new_vec % bounds)
+        for op in group.iter_with_bounds(bounds) {
+            let new_p1 = (op * origin_position) % bounds;
+            let new_p2 = (op * end_position) % bounds;
+            if new_p1 == origin_position && !(expansion.contains(&new_p2)) {
+                expansion.push(new_p2)
+            }
+            if new_p2 == origin_position && !(expansion.contains(&new_p1)) {
+                expansion.push(new_p1)
             }
         }
         Self {
             is_ab_pair: !origin_site.contains_pos(end_position),
             origin_site: origin_site.to_reduced_site(),
-            vec: pair_vector,
+            vec: (end_position - origin_position) % bounds,
             expansion,
         }
     }
@@ -163,16 +164,14 @@ fn contains_position(sites: &[Site], position: Pos3) -> bool {
 /// group befor applying the algorithm.
 /// If construct ab pairs is set to true the pairs of different sites are constructed to.
 pub fn calculate_pairs(
-    group: &mut IsometryGroup,
+    group: IsometryGroup,
     mut positions: Vec<Pos3>,
     bounds: Bounds3,
     construct_ab_pairs: bool,
 ) -> Vec<PairExpansion> {
-    // println!("{}", group);
     positions
         .iter_mut()
         .for_each(|p| *p = *p % Bounds3::splat(1));
-
     let mut sites = Vec::new();
     for pos in positions {
         if !contains_position(&sites, pos) {
@@ -181,20 +180,14 @@ pub fn calculate_pairs(
     }
     let mut expansions = Vec::new();
 
-    // println!("{}", group.get_laue_group());
-
     for site in &sites {
-        expansions.append(&mut construct_expansions(site, site, bounds, group));
-        // for pos in &site.orbit {
-        //     print!("{}, ", pos);
-        // }
-        // println!()
+        expansions.append(&mut construct_site_pairs(site, site, bounds, &group));
     }
 
     if construct_ab_pairs {
         for (i, site_1) in sites.iter().enumerate() {
             for site_2 in &sites[i + 1..] {
-                expansions.append(&mut construct_expansions(site_1, site_2, bounds, group))
+                expansions.append(&mut construct_site_pairs(site_1, site_2, bounds, &group))
             }
         }
     }
@@ -263,14 +256,9 @@ pub fn produce_output_string(expansions: &[PairExpansion]) -> String {
 }
 
 /// retruns true if the pair equal to one of the pairs in the site.
-fn contains_pair(
-    expansions: &[PairExpansion],
-    origin_position: Pos3,
-    end_position: Pos3,
-    bounds: Bounds3,
-) -> bool {
+fn contains_pair(expansions: &[PairExpansion], origin_position: Pos3, end_position: Pos3) -> bool {
     for expansion in expansions {
-        if expansion.contains_pair(origin_position, end_position, bounds) {
+        if expansion.contains_pair(origin_position, end_position) {
             return true;
         }
     }
@@ -279,20 +267,18 @@ fn contains_pair(
 
 /// constructs all pairs which have their origin at site_1 and their end point at one of the
 /// positions of site_2
-fn construct_expansions(
+fn construct_site_pairs(
     site_1: &Site,
     site_2: &Site,
     bounds: Bounds3,
-    group: &mut IsometryGroup,
+    group: &IsometryGroup,
 ) -> Vec<PairExpansion> {
-    let mut expansions = Vec::new();
+    let mut out = Vec::new();
     let origin_position = site_1.position;
     for pos in site_2.orbit_in_bounds(bounds) {
-        if !contains_pair(&expansions, origin_position, pos, bounds) {
-            expansions.push(PairExpansion::from_positions(
-                site_1, site_2, pos, group, bounds,
-            ))
+        if !contains_pair(&out, origin_position, pos) {
+            out.push(PairExpansion::from_positions(site_1, pos, group, bounds))
         }
     }
-    expansions
+    out
 }
