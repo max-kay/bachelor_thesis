@@ -46,7 +46,7 @@ eval("__webpack_require__.r(__webpack_exports__);\n/* harmony export */ __webpac
   \******************************/
 /***/ ((module, exports, __webpack_require__) => {
 
-eval("module.exports = __webpack_require__.v(exports, module.id, \"ee3a12af0441db9bba26\");\n\n//# sourceURL=webpack:///../pkg/website_bg.wasm?");
+eval("module.exports = __webpack_require__.v(exports, module.id, \"48315c1735cc038593c3\");\n\n//# sourceURL=webpack:///../pkg/website_bg.wasm?");
 
 /***/ })
 
